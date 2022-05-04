@@ -1,44 +1,30 @@
-import { _each } from '../src/utils.js';
+import { _each, logError } from '../src/utils.js';
 import { ajax } from '../src/ajax.js';
 import adapter from '../src/AnalyticsAdapter.js';
 import adapterManager from '../src/adapterManager.js';
 
-const EVENT_URL = 'https://jeremy.dev.kargo.com/tools/tracker';
+const EVENT_URL = 'https://krk.kargo.com/api/v1/event';
 const KARGO_BIDDER_CODE = 'kargo';
 const CONSTANTS = require('../src/constants.json');
 
 const analyticsType = 'endpoint';
 
-let _bidResponseData = {
-  timeout: 0,
-  auctionId: '',
-  adUnitCode: '',
+let _logData = {
+  auctionTimeout: 0,
   bidId: '',
-  domain: '',
-  isNoBid: false
 };
-let _isTimeout = false;
 
 var kargoAnalyticsAdapter = Object.assign(
   adapter({ analyticsType }), {
     track({ eventType, args }) {
-      console.log(eventType, args);
       if (typeof args !== 'undefined') {
-        switch(eventType) {
+        switch (eventType) {
           case CONSTANTS.EVENTS.AUCTION_INIT: {
-            _bidResponseData.timeout = args.timeout;
+            _logData.auctionTimeout = args.timeout;
             break;
           }
           case CONSTANTS.EVENTS.BID_TIMEOUT: {
             handleTimeout(args);
-            break;
-          }
-          case CONSTANTS.EVENTS.NO_BID: {
-            handleNoBid(args);
-            break;
-          }
-          case CONSTANTS.EVENTS.BIDDER_DONE: {
-            handleBidderDone(args);
             break;
           }
         }
@@ -48,48 +34,33 @@ var kargoAnalyticsAdapter = Object.assign(
 );
 
 function handleTimeout (timeouts) {
+  let sent = false;
   _each(timeouts, timeout => {
-    if (timeout.bidder === KARGO_BIDDER_CODE) {
-      _isTimeout = true;
+    if (timeout.bidder === KARGO_BIDDER_CODE && !sent) {
+      _logData.auctionId = timeout.auctionId;
 
-      const { auctionId, adUnitCode, bidId } = timeout;
-
-      _bidResponseData = {
-        ..._bidResponseData,
-        auctionId,
-        adUnitCode,
-        bidId,
-        domain: window.location.hostname,
-      };
-      return;
+      sendTimeoutData(_logData);
+      sent = true;
     }
   });
 }
 
-function handleNoBid (nobid) {
-  if (nobid.bidder === KARGO_BIDDER_CODE) {
-    _bidResponseData.isNoBid = true;
-  }
-}
-
-function handleBidderDone (bidderDone) {
-  if (bidderDone.bidderCode === KARGO_BIDDER_CODE && _isTimeout) {
-    sendData('', _bidResponseData);
-  }
-}
-
-function sendData (route, data) {
-  setTimeout(function() {
+function sendTimeoutData (data) {
+  try {
     ajax(
-      `${EVENT_URL}/${route}`, {
-        success: function() {},
-        error: function() {}
+      `${EVENT_URL}/timeout`,
+      null,
+      {
+        aid: data.auctionId,
+        ato: data.auctionTimeout,
       },
-      JSON.stringify(data), {
-        method: 'POST'
+      {
+        method: 'GET',
       }
     );
-  }, 3000);
+  } catch (err) {
+    logError('Error sending timeout data: ', err);
+  }
 }
 
 adapterManager.registerAnalyticsAdapter({
