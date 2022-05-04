@@ -27,7 +27,7 @@ describe('Kargo Analytics Adapter', function () {
       events.getEvents.restore();
     });
 
-    it('bid timeout should send one request', function() {
+    it('bid timeout should send one request with auction ID and timeout', function() {
       const bidTimeout = [
         {
           bidId: '2baa51527bd015',
@@ -47,8 +47,8 @@ describe('Kargo Analytics Adapter', function () {
       });
       events.emit(constants.EVENTS.BID_TIMEOUT, bidTimeout);
 
-      expect(server.requests[0].url).to.equal('https://krk.kargo.com/api/v1/event/timeout?aid=66529d4c-8998-47c2-ab3e-5b953490b98f&ato=100');
       expect(server.requests.length).to.equal(1);
+      expect(server.requests[0].url).to.equal('https://krk.kargo.com/api/v1/event/timeout?aid=66529d4c-8998-47c2-ab3e-5b953490b98f&ato=100');
     });
   });
 });
