@@ -10,23 +10,21 @@ const CONSTANTS = require('../src/constants.json');
 const analyticsType = 'endpoint';
 
 let _logData = {
+  auctionId: '',
   auctionTimeout: 0,
-  bidId: '',
 };
 
 var kargoAnalyticsAdapter = Object.assign(
   adapter({ analyticsType }), {
     track({ eventType, args }) {
-      if (typeof args !== 'undefined') {
-        switch (eventType) {
-          case CONSTANTS.EVENTS.AUCTION_INIT: {
-            _logData.auctionTimeout = args.timeout;
-            break;
-          }
-          case CONSTANTS.EVENTS.BID_TIMEOUT: {
-            handleTimeout(args);
-            break;
-          }
+      switch (eventType) {
+        case CONSTANTS.EVENTS.AUCTION_INIT: {
+          _logData.auctionTimeout = args.timeout;
+          break;
+        }
+        case CONSTANTS.EVENTS.BID_TIMEOUT: {
+          handleTimeout(args);
+          break;
         }
       }
     }
@@ -36,12 +34,13 @@ var kargoAnalyticsAdapter = Object.assign(
 function handleTimeout (timeouts) {
   let sent = false;
   _each(timeouts, timeout => {
-    if (timeout.bidder === KARGO_BIDDER_CODE && !sent) {
-      _logData.auctionId = timeout.auctionId;
-
-      sendTimeoutData(_logData);
-      sent = true;
+    if (sent || timeout.bidder !== KARGO_BIDDER_CODE) {
+      return
     }
+
+    _logData.auctionId = timeout.auctionId;
+    sendTimeoutData(_logData);
+    sent = true;
   });
 }
 
