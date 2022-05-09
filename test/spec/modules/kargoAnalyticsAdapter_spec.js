@@ -30,15 +30,11 @@ describe('Kargo Analytics Adapter', function () {
     it('bid timeout should send one request with auction ID and timeout', function() {
       const bidTimeout = [
         {
-          bidId: '2baa51527bd015',
           bidder: 'kargo',
-          adUnitCode: '/19968336/header-bid-tag-0',
           auctionId: '66529d4c-8998-47c2-ab3e-5b953490b98f'
         },
         {
-          bidId: '6fe3b4c2c23092',
           bidder: 'kargo',
-          adUnitCode: '/19968336/header-bid-tag-1',
           auctionId: '66529d4c-8998-47c2-ab3e-5b953490b98f'
         }
       ];
