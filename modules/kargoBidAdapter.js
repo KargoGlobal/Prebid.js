@@ -79,7 +79,7 @@ export const spec = {
         meta.advertiserDomains = adUnit.metadata.landingPageDomain;
       }
 
-      if (adUnit.mediaType) {
+      if (adUnit.mediaType && SUPPORTED_MEDIA_TYPES.includes(adUnit.mediaType)) {
         meta.mediaType = adUnit.mediaType;
       }
 
