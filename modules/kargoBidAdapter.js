@@ -1,4 +1,4 @@
-import { _each, buildUrl, deepAccess, triggerPixel } from '../src/utils.js';
+import { _each, buildUrl, deepAccess, pick, triggerPixel } from '../src/utils.js';
 import { config } from '../src/config.js';
 import { registerBidder } from '../src/adapters/bidderFactory.js';
 import { getStorageManager } from '../src/storageManager.js';
@@ -61,9 +61,10 @@ export const spec = {
       prebidRawBidRequests: validBidRequests
     }, spec._getAllMetadata(bidderRequest, tdid));
 
-    const userAgentClientHints = deepAccess(firstBidRequest, 'ortb2.device.sua');
-    if (userAgentClientHints) {
-      transformedParams.userAgentClientHints = userAgentClientHints;
+    // User Agent Client Hints / SUA
+    const uaClientHints = deepAccess(firstBidRequest, 'ortb2.device.sua');
+    if (uaClientHints) {
+      transformedParams.device.sua = pick(uaClientHints, ['browsers', 'platform', 'model']);
     }
 
     // Pull Social Canvas segments and embed URL
