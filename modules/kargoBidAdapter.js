@@ -6,11 +6,11 @@ import { BANNER, VIDEO } from '../src/mediaTypes.js';
 
 const BIDDER_CODE = 'kargo';
 const HOST = 'https://krk.kargo.com';
-const SYNC = 'https://crb.kargo.com/api/v1/initsyncrnd/{UUID}?seed={SEED}&idx={INDEX}&gdpr={GDPR}&gdpr_consent={GDPR_CONSENT}&us_privacy={US_PRIVACY}';
+const SYNC = 'https://crb.kargo.com/api/v1/initsyncrnd/{UUID}?seed={SEED}&idx={INDEX}&gdpr={GDPR}&gdpr_consent={GDPR_CONSENT}&us_privacy={US_PRIVACY}&gpp={GPP_STRING}&gpp_sid={GPP_SID}';
 const SYNC_COUNT = 5;
 const GVLID = 972;
 const SUPPORTED_MEDIA_TYPES = [BANNER, VIDEO];
-const storage = getStorageManager({gvlid: GVLID, bidderCode: BIDDER_CODE});
+const storage = getStorageManager({ gvlid: GVLID, bidderCode: BIDDER_CODE });
 
 let sessionId,
   lastPageUrl,
@@ -19,14 +19,14 @@ let sessionId,
 export const spec = {
   gvlid: GVLID,
   code: BIDDER_CODE,
-  isBidRequestValid: function(bid) {
+  isBidRequestValid: function (bid) {
     if (!bid || !bid.params) {
       return false;
     }
 
     return !!bid.params.placementId;
   },
-  buildRequests: function(validBidRequests, bidderRequest) {
+  buildRequests: function (validBidRequests, bidderRequest) {
     const currencyObj = config.getConfig('currency');
     const currency = (currencyObj && currencyObj.adServerCurrency) || 'USD';
     const bidIDs = {};
@@ -82,7 +82,7 @@ export const spec = {
       currency: currency
     });
   },
-  interpretResponse: function(response, bidRequest) {
+  interpretResponse: function (response, bidRequest) {
     let bids = response.body;
     const bidResponses = [];
     for (let bidId in bids) {
@@ -128,12 +128,15 @@ export const spec = {
 
     return bidResponses;
   },
-  getUserSyncs: function(syncOptions, responses, gdprConsent, usPrivacy) {
+  getUserSyncs: function (syncOptions, responses, gdprConsent, usPrivacy, gppConsent) {
     const syncs = [];
     const seed = spec._generateRandomUuid();
     const clientId = spec._getClientId();
     var gdpr = (gdprConsent && gdprConsent.gdprApplies) ? 1 : 0;
     var gdprConsentString = (gdprConsent && gdprConsent.consentString) ? gdprConsent.consentString : '';
+    var gppString = (gppConsent && gppConsent.consentString) ? gppConsent.consentString : '';
+    var gppApplicableSections = (gppConsent && gppConsent.applicableSections && Array.isArray(gppConsent.applicableSections)) ? gppConsent.applicableSections.join(",") : '';
+
     // don't sync if opted out via usPrivacy
     if (typeof usPrivacy == 'string' && usPrivacy.length == 4 && usPrivacy[0] == 1 && usPrivacy[2] == 'Y') {
       return syncs;
@@ -147,13 +150,15 @@ export const spec = {
             .replace('{GDPR}', gdpr)
             .replace('{GDPR_CONSENT}', gdprConsentString)
             .replace('{US_PRIVACY}', usPrivacy || '')
+            .replace('{GPP_STRING}', gppString)
+            .replace('{GPP_SID}', gppApplicableSections)
         });
       }
     }
     return syncs;
   },
   supportedMediaTypes: SUPPORTED_MEDIA_TYPES,
-  onTimeout: function(timeoutData) {
+  onTimeout: function (timeoutData) {
     if (timeoutData == null) {
       return;
     }
@@ -202,14 +207,18 @@ export const spec = {
     }
   },
 
-  _getUserIds(tdid, usp, gdpr) {
+  _getUserIds(tdid, usp, gdpr, gpp) {
     const crb = spec._getCrb();
     const userIds = {
       kargoID: crb.lexId,
       clientID: crb.clientId,
       crbIDs: crb.syncIds || {},
       optOut: crb.optOut,
-      usp: usp
+      usp: usp,
+      gpp: {
+        gppString: (gpp && gpp.consentString) || '',
+        applicableSections: (gpp && gpp.applicableSections) || []
+      }
     };
 
     try {
@@ -234,7 +243,7 @@ export const spec = {
 
   _getAllMetadata(bidderRequest, tdid) {
     return {
-      userIDs: spec._getUserIds(tdid, bidderRequest.uspConsent, bidderRequest.gdprConsent),
+      userIDs: spec._getUserIds(tdid, bidderRequest.uspConsent, bidderRequest.gdprConsent, bidderRequest.gppConsent),
       pageURL: bidderRequest?.refererInfo?.page,
       rawCRB: storage.getCookie('krg_crb'),
       rawCRBLocalStorage: spec._getLocalStorageSafely('krg_crb')
@@ -263,7 +272,7 @@ export const spec = {
       crypto.getRandomValues(buffer);
       buffer[6] = (buffer[6] & ~176) | 64;
       buffer[8] = (buffer[8] & ~64) | 128;
-      var hex = Array.prototype.map.call(new Uint8Array(buffer), function(x) {
+      var hex = Array.prototype.map.call(new Uint8Array(buffer), function (x) {
         return ('00' + x.toString(16)).slice(-2);
       }).join('');
       return hex.slice(0, 8) + '-' + hex.slice(8, 12) + '-' + hex.slice(12, 16) + '-' + hex.slice(16, 20) + '-' + hex.slice(20);
@@ -287,7 +296,7 @@ export const spec = {
       });
 
       triggerPixel(timeoutRequestUrl);
-    } catch (e) {}
+    } catch (e) { }
   }
 };
 registerBidder(spec);
