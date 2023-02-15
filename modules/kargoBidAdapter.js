@@ -47,11 +47,7 @@ const SUA_ATTRIBUTES = [
 
 const CERBERUS = Object.freeze({
   KEY: 'krg_crb',
-<<<<<<< HEAD
   SYNC_URL: 'https://crb.kargo.com/api/v1/initsyncrnd/{UUID}?seed={SEED}&idx={INDEX}&gdpr={GDPR}&gdpr_consent={GDPR_CONSENT}&us_privacy={US_PRIVACY}&gpp={GPP_STRING}&gpp_sid={GPP_SID}',
-=======
-  SYNC_URL: 'https://crb.kargo.com/api/v1/initsyncrnd/{UUID}?seed={SEED}&idx={INDEX}&gdpr={GDPR}&gdpr_consent={GDPR_CONSENT}&us_privacy={US_PRIVACY}',
->>>>>>> a0c4584a859b09fffebe81d5eb6f2384db12507d
   SYNC_COUNT: 5,
   PAGE_VIEW_ID: 'pageViewId',
   PAGE_VIEW_TIMESTAMP: 'pageViewTimestamp',
@@ -329,11 +325,7 @@ function getLocalStorageSafely(key) {
   }
 }
 
-<<<<<<< HEAD
 function getUserIds(tdidAdapter, usp, gdpr, eids, gpp) {
-=======
-function getUserIds(tdidAdapter, usp, gdpr, eids) {
->>>>>>> a0c4584a859b09fffebe81d5eb6f2384db12507d
   const crb = spec._getCrb();
   const userIds = {
     crbIDs: crb.syncIds || {}
