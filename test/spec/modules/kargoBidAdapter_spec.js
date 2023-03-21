@@ -537,9 +537,7 @@ describe('kargo adapter tests', function () {
       }
 
       const reqCount = requestCount++
-      if (reqCount > 0) {
-        base.requestCount = reqCount
-      }
+      base.requestCount = reqCount
 
       if (expectedCRB != null) {
         if (expectedCRB.rawCRB != null) {
