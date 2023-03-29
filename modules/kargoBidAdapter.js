@@ -236,6 +236,7 @@ function getUserSyncs(syncOptions, responses, gdprConsent, usPrivacy, gppConsent
 
   var gdpr = (gdprConsent && gdprConsent.gdprApplies) ? 1 : 0;
   var gdprConsentString = (gdprConsent && gdprConsent.consentString) ? gdprConsent.consentString : '';
+
   var gppString = (gppConsent && gppConsent.consentString) ? gppConsent.consentString : '';
   var gppApplicableSections = (gppConsent && gppConsent.applicableSections && Array.isArray(gppConsent.applicableSections)) ? gppConsent.applicableSections.join(',') : '';
 
