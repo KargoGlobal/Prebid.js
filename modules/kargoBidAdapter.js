@@ -205,7 +205,6 @@ function interpretResponse(response, bidRequest) {
 
   // Utilize Object.entries with destructuring for cleaner iteration
   for (const [bidID, adUnit] of Object.entries(bids)) {
-    // Object spread syntax to create meta object
     let meta = {
       mediaType: adUnit.mediaType && BIDDER.SUPPORTED_MEDIA_TYPES.includes(adUnit.mediaType) ? adUnit.mediaType : BANNER
     };
