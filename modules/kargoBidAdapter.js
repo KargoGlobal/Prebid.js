@@ -241,7 +241,6 @@ function interpretResponse(response, bidRequest) {
       bidResponse.ad = adUnit.adm;
     }
 
-    // Push the bid response into the bidResponses array
     bidResponses.push(bidResponse);
   }
 
