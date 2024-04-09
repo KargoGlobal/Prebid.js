@@ -217,6 +217,7 @@ function interpretResponse(response, bidRequest) {
     }
 
     // Use object destructuring for cleaner object creation
+    // Proper checks for safer execution and avoid runtime errors
     const bidResponse = {
       requestId: bidID,
       cpm: typeof adUnit.cpm === 'number' ? Number(adUnit.cpm) : 0, // Type check for cpm and provide default value
