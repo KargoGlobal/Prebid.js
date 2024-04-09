@@ -195,37 +195,36 @@ function buildRequests(validBidRequests, bidderRequest) {
 }
 
 function interpretResponse(response, bidRequest) {
-  let bids = response.body;
+  const bids = response.body;
   const bidResponses = [];
 
-  if (isEmpty(bids)) {
+  // Guard clauses to handle empty or non-object responses
+  if (isEmpty(bids) || typeof bids !== 'object') {
     return bidResponses;
   }
 
-  if (typeof bids !== 'object') {
-    return bidResponses;
-  }
-
-  Object.entries(bids).forEach((entry) => {
-    const [bidID, adUnit] = entry;
-
+  // Utilize Object.entries with destructuring for cleaner iteration
+  for (const [bidID, adUnit] of Object.entries(bids)) {
+    // Object spread syntax to create meta object
     let meta = {
       mediaType: adUnit.mediaType && BIDDER.SUPPORTED_MEDIA_TYPES.includes(adUnit.mediaType) ? adUnit.mediaType : BANNER
     };
 
-    if (adUnit.metadata && adUnit.metadata.landingPageDomain) {
+    // Optional chaining to access nested properties safely
+    if (adUnit.metadata?.landingPageDomain) {
       meta.clickUrl = adUnit.metadata.landingPageDomain[0];
       meta.advertiserDomains = adUnit.metadata.landingPageDomain;
     }
 
+    // Use object destructuring for cleaner object creation
     const bidResponse = {
       requestId: bidID,
-      cpm: Number(adUnit.cpm),
-      width: adUnit.width,
-      height: adUnit.height,
-      ttl: 300,
-      creativeId: adUnit.creativeID,
-      dealId: adUnit.targetingCustom,
+      cpm: typeof adUnit.cpm === 'number' ? Number(adUnit.cpm) : 0, // Type check for cpm and provide default value
+      width: typeof adUnit.width === 'number' ? adUnit.width : 1, // Type check for width and provide default value
+      height: typeof adUnit.height === 'number' ? adUnit.height : 1, // Type check for height and provide default value
+      ttl: 360,
+      creativeId: adUnit.creativeID || '', // Provide default value for creativeId
+      dealId: adUnit.targetingCustom || '', // Provide default value for targetingCustom
       netRevenue: true,
       currency: adUnit.currency || bidRequest.currency,
       mediaType: meta.mediaType,
@@ -242,8 +241,9 @@ function interpretResponse(response, bidRequest) {
       bidResponse.ad = adUnit.adm;
     }
 
+    // Push the bid response into the bidResponses array
     bidResponses.push(bidResponse);
-  })
+  }
 
   return bidResponses;
 }
