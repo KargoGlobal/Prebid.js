@@ -220,12 +220,12 @@ function interpretResponse(response, bidRequest) {
     // Proper checks for safer execution and avoid runtime errors
     const bidResponse = {
       requestId: bidID,
-      cpm: typeof adUnit.cpm === 'number' ? Number(adUnit.cpm) : 0, // Type check for cpm and provide default value
-      width: typeof adUnit.width === 'number' ? adUnit.width : 1, // Type check for width and provide default value
-      height: typeof adUnit.height === 'number' ? adUnit.height : 1, // Type check for height and provide default value
+      cpm: Number(adUnit.cpm) || 0,
+      width: adUnit.width || 1,
+      height: adUnit.height || 1,
       ttl: 360,
-      creativeId: adUnit.creativeID || '', // Provide default value for creativeId
-      dealId: adUnit.targetingCustom || '', // Provide default value for targetingCustom
+      creativeId: adUnit.creativeID || '',
+      dealId: adUnit.targetingCustom,
       netRevenue: true,
       currency: adUnit.currency || bidRequest.currency,
       mediaType: meta.mediaType,
