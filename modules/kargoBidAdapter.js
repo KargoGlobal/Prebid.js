@@ -222,7 +222,7 @@ function interpretResponse(response, bidRequest) {
       cpm: Number(adUnit.cpm) || 0,
       width: adUnit.width || 1,
       height: adUnit.height || 1,
-      ttl: 360,
+      ttl: 300,
       creativeId: adUnit.creativeID || '',
       dealId: adUnit.targetingCustom,
       netRevenue: true,
