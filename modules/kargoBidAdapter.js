@@ -219,11 +219,11 @@ function interpretResponse(response, bidRequest) {
     // Proper checks for safer execution and avoid runtime errors
     const bidResponse = {
       requestId: bidID,
-      cpm: Number(adUnit.cpm) || 0,
-      width: adUnit.width || 1,
-      height: adUnit.height || 1,
+      cpm: Number(adUnit.cpm),
+      width: adUnit.width,
+      height: adUnit.height,
       ttl: 300,
-      creativeId: adUnit.creativeID || '',
+      creativeId: adUnit.creativeID,
       dealId: adUnit.targetingCustom,
       netRevenue: true,
       currency: adUnit.currency || bidRequest.currency,
