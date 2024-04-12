@@ -198,25 +198,20 @@ function interpretResponse(response, bidRequest) {
   const bids = response.body;
   const bidResponses = [];
 
-  // Guard clauses to handle empty or non-object responses
   if (isEmpty(bids) || typeof bids !== 'object') {
     return bidResponses;
   }
 
-  // Utilize Object.entries with destructuring for cleaner iteration
   for (const [bidID, adUnit] of Object.entries(bids)) {
     let meta = {
       mediaType: adUnit.mediaType && BIDDER.SUPPORTED_MEDIA_TYPES.includes(adUnit.mediaType) ? adUnit.mediaType : BANNER
     };
 
-    // Optional chaining to access nested properties safely
     if (adUnit.metadata?.landingPageDomain) {
       meta.clickUrl = adUnit.metadata.landingPageDomain[0];
       meta.advertiserDomains = adUnit.metadata.landingPageDomain;
     }
 
-    // Use object destructuring for cleaner object creation
-    // Proper checks for safer execution and avoid runtime errors
     const bidResponse = {
       requestId: bidID,
       cpm: Number(adUnit.cpm),
