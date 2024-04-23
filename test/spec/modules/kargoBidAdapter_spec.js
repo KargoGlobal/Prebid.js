@@ -406,7 +406,7 @@ describe('kargo adapter tests', function() {
 
       // General keys
       expect(payload.aid).to.equal('randomAuctionId');
-      expect(payload.device).to.deep.equal({ size: [ 3440, 1440 ] });
+      expect(payload.device).to.deep.equal({ size: [ window.screen.width, window.screen.height ] });
       expect(payload.ext.ortb2).to.deep.equal(defaultBidParams.ortb2);
       expect(payload.pbv).to.equal('$prebid.version$');
       expect(payload.requestCount).to.equal(spec.buildRequests.callCount - 1);
