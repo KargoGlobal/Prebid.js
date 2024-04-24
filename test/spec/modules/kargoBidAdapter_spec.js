@@ -1969,11 +1969,6 @@ describe('kargo adapter tests', function() {
     });
 
     it('calls triggerPixel if any timeout data is provided', function() {
-      spec.onTimeout([ {auctionId: 'test-auction-id', timeout: 400} ]);
-      expect(utils.triggerPixel.calledWith('https://krk2.kargo.com/api/v1/event/timeout?aid=test-auction-id&ato=400')).to.be.true;
-    });
-
-    it('calls triggerPixel if any timeout data is provided', function() {
       spec.onTimeout([
         {auctionId: 'test-auction-id', timeout: 400},
         {auctionId: 'test-auction-id-2', timeout: 100},
