@@ -1,0 +1,307 @@
+<html>
+
+<head>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <script async src="//www.googletagservices.com/tag/js/gpt.js"></script>
+    <script src="build/dist/prebid.js"></script>
+    <script>
+        localStorage.setItem('krg_crb', 'eyJleHBpcmVUaW1lIjoxNzE0MDc3Mzg2NTEzLCJsYXN0U3luY2VkQXQiOjE3MTQwNzcyNjY1MTQsIm9wdE91dCI6ZmFsc2UsInN5bmNJZHMiOnsiMiI6IjgyZmEyNTU1LTU5NjktNDYxNC1iNGNlLTRkY2YxMDgwZTlmOSIsIjE2IjoiVm94SWs4QW9KejBBQUVkQ2V5QUFBQUMyJjUwMiIsIjIzIjoiZDJhODU1YTUtMWIxYy00MzAwLTk0MGUtYTcwOGZhMWYxYmRlIiwiMjQiOiJWb3hJazhBb0p6MEFBRWRDZXlBQUFBQzImNTAyIiwiMjUiOiI1ZWUyNDEzOC01ZTAzLTRiOWQtYTk1My0zOGU4MzNmMjg0OWYiLCIyXzgwIjoiZDJhODU1YTUtMWIxYy00MzAwLTk0MGUtYTcwOGZhMWYxYmRlIiwiMl85MyI6IjVlZTI0MTM4LTVlMDMtNGI5ZC1hOTUzLTM4ZTgzM2YyODQ5ZiJ9LCJ0ZElEIjoidGVzdC10ZGlkLWNlcmJlcnVzLWNvb2tpZSIsImxleElkIjoidGVzdC1sZXhpZC1jZXJiZXJ1cy1jb29raWUiLCJjbGllbnRJZCI6InRlc3QtY2xpZW50aWQtY2VyYmVydXMtY29va2llIn0=');
+        console.log(JSON.parse(atob(localStorage.getItem('krg_crb'))));
+
+        var div_1_sizes = [
+            [300, 250],
+            [300, 600]
+        ];
+        var div_2_sizes = [
+            [728, 90],
+            [970, 250]
+        ];
+        var PREBID_TIMEOUT = 1000;
+        var FAILSAFE_TIMEOUT = 3000;
+
+        var adUnits = [
+            {
+                code: '/19968336/header-bid-tag-0',
+                mediaTypes: {
+                    banner: {
+                        sizes: div_1_sizes
+                    }
+                },
+                floors: {
+                    currency: 'USD',
+                    skipRate: 5,
+                    modelVersion: 'Sports Ad Unit Floors',
+                    schema: {
+                        fields: ['mediaType']
+                    },
+                    values: {
+                        'banner': 0.8,
+                    }
+                },
+                ortb2Imp: {
+                    rwdd: 1,
+                    instl: 1,
+                    something: "abc",
+                    ext: {
+                        data: {
+                            pbadslot: "my-rewarded-rectangle",
+                            adUnitSpecificAttribute: "123"
+                        }
+                    },
+                },
+                bids: [{
+                    bidder: 'kargo',
+                    params: {
+                        placementId: "13144370"
+                    }
+                },{
+                    bidder: 'kargo2',
+                    params: {
+                        placementId: "13144370"
+                    }
+                }]
+            },
+            {
+                code: '/19968336/header-bid-tag-1',
+                mediaTypes: {
+                    video: {
+                        context: 'instream',
+                        plcmt: 1,
+                        playerSize: [640, 480],
+                        mimes: ['video/mp4'],
+                        protocols: [1, 2, 3, 4, 5, 6, 7, 8],
+                        playbackmethod: [5],
+                        skip: 1
+                    },
+                },
+                floors: {
+                    currency: 'USD',
+                    skipRate: 5,
+                    modelVersion: 'Sports Ad Unit Floors',
+                    schema: {
+                        fields: ['mediaType']
+                    },
+                    values: {
+                        'banner': 3.23,
+                        'video': 2.00,
+                        '*': 4
+                    }
+                },
+                ortb2Imp: {
+                    rwdd: 1,
+                    secure: 1,
+                    somethingelse: "123",
+                    ext: {
+                        data: {
+                            pbadslot: "my-rewarded-rectangle",
+                            adUnitSpecificAttribute: "123"
+                        }
+                    },
+                },
+                bids: [{
+                    bidder: 'kargo',
+                    params: {
+                        placementId: "13144370"
+                    }
+                },{
+                    bidder: 'kargo2',
+                    params: {
+                        placementId: "13144370"
+                    }
+                }]
+            }
+        ];
+
+        // ======== DO NOT EDIT BELOW THIS LINE =========== //
+        var googletag = googletag || {};
+        googletag.cmd = googletag.cmd || [];
+        googletag.cmd.push(function () {
+            googletag.pubads().disableInitialLoad();
+        });
+
+        var pbjs = pbjs || {};
+        pbjs.que = pbjs.que || [];
+
+        pbjs.bidderSettings = {
+            kargo: { storageAllowed: true },
+            kargo2: { storageAllowed: true },
+        };
+
+        pbjs.setConfig({ floors: {} });
+
+        pbjs.setConfig({
+            ortb2: {
+                // this is where the contextual data is placed
+                site: {
+                
+
+                    // OpenRTB 2.5 spec / Content Taxonomy
+                    cat: ["IAB2"],
+                    bcat: ["IAB3"],
+                    sectioncat: ["IAB2-2"],
+                    pagecat: ["IAB2-2"],
+
+                    keywords: "power tools, drills",
+                    search: "drill",
+
+                    content: {
+                        userrating: "4",
+                        data: [{
+                            name: "www.dataprovider1.com", // who resolved the segments
+                            ext: {
+                                segtax: 7, // taxonomy used to encode the segments
+                                cids: ["iris_c73g5jq96mwso4d8"]
+                            },
+                            // the bare minimum are the IDs. These IDs are the ones from the new IAB Content Taxonomy v3
+                            segment: [{ id: "687" }, { id: "123" }]
+                        }]
+                    },
+                    ext: {
+                        data: { // fields that aren't part of openrtb 2.6
+                            pageType: "article",
+                            category: "repair"
+                        }
+                    }
+                },
+
+                // this is where the user data is placed
+                user: {
+                    keywords: "a,b",
+                    data: [{
+                        name: "dataprovider.com",
+                        ext: {
+                            segtax: 4
+                        },
+                        segment: [{
+                            id: "1"
+                        }]
+                    }],
+                    ext: {
+                        data: {
+                            registered: true,
+                            interests: ["cars"]
+                        }
+                    }
+                },
+                regs: {
+                    gpp: "abc1234",
+                    gpp_sid: [7],
+                    ext: {
+                        dsa: {
+                            dsarequired: 3,
+                            pubrender: 0,
+                            datatopub: 2,
+                            transparency: [
+                                {
+                                    domain: 'platform1domain.com',
+                                    dsaparams: [1]
+                                },
+                                {
+                                    domain: 'platform2domain.com',
+                                    dsaparams: [1, 2]
+                                }
+                            ]
+                        }
+                    }
+                },
+                bcat: ['1', '2', '3'],
+                badv: ['4', '5', '6']
+            }
+        });
+
+        pbjs.setConfig({
+            userSync: {
+                userIds: [{
+                    name: 'qid',
+                    storage: {
+                        name: 'qid',
+                        type: 'html5',
+                        expires: 365,
+                    }
+                },
+                {
+                    name: 'adtelligent',
+                    storage: {
+                        type: "html5",
+                        name: "adt_id",
+                        expires: 0.003,
+                        refreshInSeconds: 60 * 5
+                    }
+                },
+                {
+                    name: "criteo",
+                },
+                {
+                    name: 'czechAdId'
+                }
+                ]
+            }
+        });
+
+        pbjs.setConfig({coppa: true});
+
+        pbjs.que.push(function () {
+            pbjs.addAdUnits(adUnits);
+            pbjs.requestBids({
+                bidsBackHandler: initAdserver,
+                timeout: PREBID_TIMEOUT
+            });
+        });
+
+        function initAdserver() {
+            if (pbjs.initAdserverSet) return;
+            pbjs.initAdserverSet = true;
+            googletag.cmd.push(function () {
+                pbjs.que.push(function () {
+                    pbjs.setTargetingForGPTAsync();
+                    googletag.pubads().refresh();
+                });
+            });
+        }
+        // in case PBJS doesn't load
+        setTimeout(function () {
+            initAdserver();
+        }, FAILSAFE_TIMEOUT);
+
+        googletag.cmd.push(function () {
+            googletag.defineSlot('/19968336/header-bid-tag-0', div_1_sizes, 'div-1').addService(googletag.pubads());
+            googletag.pubads().enableSingleRequest();
+            googletag.enableServices();
+        });
+        googletag.cmd.push(function () {
+            googletag.defineSlot('/19968336/header-bid-tag-1', div_2_sizes, 'div-2').addService(googletag.pubads());
+            googletag.pubads().enableSingleRequest();
+            googletag.enableServices();
+        });
+
+    </script>
+
+</head>
+
+<body>
+    <h2>Basic Prebid.js Example</h2>
+    <h5>Div-1</h5>
+    <div id='div-1'>
+        <script type='text/javascript'>
+            googletag.cmd.push(function () {
+                googletag.display('div-1');
+            });
+
+        </script>
+    </div>
+
+    <br>
+
+    <h5>Div-2</h5>
+    <div id='div-2'>
+        <script type='text/javascript'>
+            googletag.cmd.push(function () {
+                googletag.display('div-2');
+            });
+
+        </script>
+    </div>
+
+</body>
+
+</html>

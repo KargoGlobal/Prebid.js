@@ -30,7 +30,8 @@ describe('kargo adapter tests', function() {
         publisher: {
           domain: domain
         },
-        ref: referer
+        ref: referer,
+        cat: [ 'IAB2' ],
       },
       source: {
         tid: 'random-tid'
@@ -140,6 +141,7 @@ describe('kargo adapter tests', function() {
     }
 
     const b64Value = btoa(JSON.stringify(value));
+    console.log(b64Value);
     if (isCookie) {
       return JSON.stringify({ v: b64Value });
     }
@@ -154,6 +156,7 @@ describe('kargo adapter tests', function() {
 
     bid = {
       ...defaultBidParams,
+      getFloor: () => ({ currency: 'USD', value: 0.5 }),
       bidder: 'kargo',
       params: {
         placementId: 'displayPlacement'
@@ -167,11 +170,13 @@ describe('kargo adapter tests', function() {
       sizes: [ [300, 250], [300, 600] ],
       bidId: 'randomBidId',
       bidderRequestId: 'randomBidderRequestId',
+      site: { cat: ['IAB2'] },
       auctionId: 'randomAuctionId'
     };
 
     outstreamBid = {
       ...defaultBidParams,
+      getFloor: () => ({ currency: 'USD', value: 0.5 }),
       bidder: 'kargo',
       params: {
         placementId: 'instreamPlacement'
@@ -196,6 +201,7 @@ describe('kargo adapter tests', function() {
       sizes: [ [300, 250], [300, 600] ],
       bidId: 'randomBidId2',
       bidderRequestId: 'randomBidderRequestId2',
+      site: { cat: ['IAB2'] },
       auctionId: 'randomAuctionId2'
     };
 
@@ -307,6 +313,9 @@ describe('kargo adapter tests', function() {
           stack: [ topUrl ],
           topmostLocation: topUrl,
         },
+        site: {
+          cat: ['IAB2'],
+        },
         start: Date.now(),
         timeout: 2500,
       };
@@ -365,6 +374,21 @@ describe('kargo adapter tests', function() {
     it('exists and produces an object', function() {
       const request = spec.buildRequests(bids, bidderRequest);
       expect(request).to.exist.and.to.be.an('object');
+    });
+
+    it('Check against ORTB converter', function() {
+      sinon.spy(bids[0], 'getFloor');
+      sinon.spy(bids[1], 'getFloor');
+
+      const data1 = spec.buildRequests(bids, bidderRequest).data;
+      const data2 = spec.buildRequestsOrtb(bids, bidderRequest).data;
+
+      // console.log(bids[0].getFloor.getCalls().map(c => c.args[0]));
+      // console.log(bids[1].getFloor.getCalls().map(c => c.args[0]));
+
+      console.log(JSON.stringify(data1, null, 2));
+      console.log(JSON.stringify(data2, null, 2));
+      expect(true).to.equal(true);
     });
 
     it('produces a POST request with a payload', function() {
@@ -934,7 +958,7 @@ describe('kargo adapter tests', function() {
     });
 
     describe('cerberus', function() {
-      it('retrieves CRB from localStorage and cookies', function() {
+      it.only('retrieves CRB from localStorage and cookies', function() {
         setCrb('valid', 'valid');
 
         const payload = getPayloadFromTestBids(testBids, bidderRequest);

@@ -1,4 +1,4 @@
-import { _each, isEmpty, buildUrl, deepAccess, pick, triggerPixel, logError } from '../src/utils.js';
+import { _each, isEmpty, buildUrl, deepAccess, pick, triggerPixel, logError, mergeDeep } from '../src/utils.js';
 import { config } from '../src/config.js';
 import { registerBidder } from '../src/adapters/bidderFactory.js';
 import { getStorageManager } from '../src/storageManager.js';
@@ -8,7 +8,7 @@ import { ortbConverter } from '../libraries/ortbConverter/converter.js';
 const PREBID_VERSION = '$prebid.version$'
 
 const BIDDER = Object.freeze({
-  CODE: 'kargo',
+  CODE: 'kargo2',
   HOST: 'krk2.kargo.com',
   REQUEST_METHOD: 'POST',
   REQUEST_ENDPOINT: '/api/v1/prebid',
@@ -77,26 +77,48 @@ const converter = ortbConverter({
   imp(buildImp, bidRequest, context) {
     const imp = buildImp(bidRequest, context);
 
+    // Add the placement ID and ad unit code
     imp.pid = bidRequest.params.placementId;
     imp.code = bidRequest.adUnitCode;
 
-    if (bidRequest.bidRequestCount > 0) {
-      imp.bidRequestCount = bidRequest.bidRequestCount;
+    // Add the raw data as expected by the endpoint
+    // @TODO - change the API so this isn't needed?
+    if (bidRequest.mediaTypes) {
+      const { banner, video, native } = bidRequest.mediaTypes;
+      if (banner) {
+        imp.banner = mergeDeep(imp.banner, banner);
+      }
+      if (video) {
+        imp.video = mergeDeep(imp.video, video);
+      }
+      if (native) {
+        imp.native = mergeDeep(imp.native, native);
+      }
     }
 
+    // Add the custom floor format to the impression
+    if (
+      typeof imp.bidfloor !== 'undefined' &&
+      imp.bidfloorcur === 'USD'
+    ) {
+      imp.floor = imp.bidfloor;
+    }
+
+    // Add the counts to the impression
+    if (bidRequest.bidRequestsCount > 0) {
+      imp.bidRequestCount = bidRequest.bidRequestsCount;
+    }
     if (bidRequest.bidderRequestsCount > 0) {
       imp.bidderRequestCount = bidRequest.bidderRequestsCount;
     }
-
     if (bidRequest.bidderWinsCount > 0) {
       imp.bidderWinCount = bidRequest.bidderWinsCount;
     }
 
+    // Add the GPID in the custom spot
     const gpid = deepAccess(bidRequest, 'ortb2Imp.ext.gpid') || deepAccess(bidRequest, 'ortb2Imp.ext.data.pbadslot');
     if (gpid) {
-      imp.fpd = {
-        gpid: gpid
-      }
+      imp.fpd = { gpid: gpid };
     }
 
     // Add full ortb2Imp object as backup
@@ -104,24 +126,41 @@ const converter = ortbConverter({
       imp.ext = { ortb2Imp: bidRequest.ortb2Imp };
     }
 
+    // ext.ortb2Imp.ext.data.adserver
+
     return imp;
+  },
+  request(buildRequest, imps, bidderRequest, context) {
+    const request = buildRequest(imps, bidderRequest, context);
+
+    const firstBidRequest = imps[0];
+
+    request.aid = firstBidRequest.auctionId;
+
+    mergeDeep(request, {
+      pbv: PREBID_VERSION,
+      device: { size: [ window.screen.width, window.screen.height ] },
+      sid: _getSessionId(),
+      ts: Date.now(),
+      timeout: bidderRequest.timeout,
+      url: request.site.page,
+      user: {
+        sharedIDEids: deepAccess(request, 'user.ext.eids'),
+      },
+    });
+
+    const reqCount = getRequestCount();
+    if (reqCount != null) {
+      request.requestCount = reqCount;
+    }
+
+    // user.crbIDs
+
+    return request;
   }
 });
 function buildRequestsOrtb(bidRequests, bidderRequest) {
   let data = converter.toORTB({ bidRequests, bidderRequest });
-
-  const firstBidRequest = bidRequests[0];
-
-  data.aid = firstBidRequest.auctionId;
-
-  // Add full ortb2 object as backup
-  if (firstBidRequest.ortb2) {
-    const siteCat = firstBidRequest.ortb2.site?.cat;
-    if (siteCat != null) {
-      data.site = { cat: siteCat };
-    }
-    data.ext = { ortb2: firstBidRequest.ortb2 };
-  }
 
   console.log('NEW', JSON.stringify(data));
 
@@ -585,7 +624,7 @@ export const spec = {
   gvlid: BIDDER.GVLID,
   code: BIDDER.CODE,
   isBidRequestValid,
-  buildRequests,
+  buildRequests: buildRequestsOrtb,
   interpretResponse,
   getUserSyncs,
   supportedMediaTypes: BIDDER.SUPPORTED_MEDIA_TYPES,
