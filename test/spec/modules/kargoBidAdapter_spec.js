@@ -350,7 +350,7 @@ describe('kargo adapter tests', function() {
 
       expect(payload).to.exist;
       expect(payload.imp).to.have.length(testBids.length);
-      // expect(payload.requestCount).to.equal(spec.buildRequests.callCount - 1);
+      expect(payload.requestCount).to.equal(spec.buildRequests.callCount - 1);
       expect(payload.sid).to.equal(session_id);
 
       return payload;

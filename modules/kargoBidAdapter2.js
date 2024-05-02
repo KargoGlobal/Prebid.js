@@ -98,8 +98,7 @@ const converter = ortbConverter({
     // Add the placement ID and transaction ID
     imp.pid = bidRequest.params.placementId;
     const tid = deepAccess(imp, 'ext.tid');
-    if (!isEmpty(tid))
-      imp.tid = tid;
+    if (!isEmpty(tid)) { imp.tid = tid; }
 
     // Add the GPID in the custom spot
     const gpid = deepAccess(bidRequest, 'ortb2Imp.ext.gpid') || deepAccess(bidRequest, 'ortb2Imp.ext.data.pbadslot');
@@ -114,10 +113,8 @@ const converter = ortbConverter({
     // @TODO - change the API so this isn't needed?
     if (bidRequest.mediaTypes) {
       const { banner, video } = bidRequest.mediaTypes;
-      if (!isEmpty(banner))
-        imp.banner = mergeDeep({}, imp.banner, banner);
-      if (!isEmpty(video))
-        imp.video = mergeDeep({}, imp.video, video);
+      if (!isEmpty(banner)) { imp.banner = mergeDeep({}, imp.banner, banner); }
+      if (!isEmpty(video)) { imp.video = mergeDeep({}, imp.video, video); }
     }
 
     return imp;
@@ -136,8 +133,7 @@ const converter = ortbConverter({
     });
 
     // Add the auction ID if present
-    if (!isEmpty(bidderRequest.auctionId))
-      request.aid = bidderRequest.auctionId;
+    if (!isEmpty(bidderRequest.auctionId)) { request.aid = bidderRequest.auctionId; }
 
     // Add the custom ortb2 passthrough
     const ortb2Passthrough = {};
