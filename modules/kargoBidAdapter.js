@@ -123,8 +123,6 @@ function buildRequestsOrtb(bidRequests, bidderRequest) {
     data.ext = { ortb2: firstBidRequest.ortb2 };
   }
 
-  console.log('NEW', JSON.stringify(data));
-
   return Object.assign({}, bidderRequest, {
     method: BIDDER.REQUEST_METHOD,
     url: `https://${BIDDER.HOST}${BIDDER.REQUEST_ENDPOINT}`,
@@ -251,7 +249,7 @@ function buildRequests(validBidRequests, bidderRequest) {
     krakenParams.page = page;
   }
 
-  console.log('OLD', JSON.stringify(krakenParams));
+  krakenParams.v = 'OLD';
 
   return Object.assign({}, bidderRequest, {
     method: BIDDER.REQUEST_METHOD,

@@ -6,7 +6,9 @@
     <script src="build/dist/prebid.js"></script>
     <script>
         localStorage.setItem('krg_crb', 'eyJleHBpcmVUaW1lIjoxNzE0MDc3Mzg2NTEzLCJsYXN0U3luY2VkQXQiOjE3MTQwNzcyNjY1MTQsIm9wdE91dCI6ZmFsc2UsInN5bmNJZHMiOnsiMiI6IjgyZmEyNTU1LTU5NjktNDYxNC1iNGNlLTRkY2YxMDgwZTlmOSIsIjE2IjoiVm94SWs4QW9KejBBQUVkQ2V5QUFBQUMyJjUwMiIsIjIzIjoiZDJhODU1YTUtMWIxYy00MzAwLTk0MGUtYTcwOGZhMWYxYmRlIiwiMjQiOiJWb3hJazhBb0p6MEFBRWRDZXlBQUFBQzImNTAyIiwiMjUiOiI1ZWUyNDEzOC01ZTAzLTRiOWQtYTk1My0zOGU4MzNmMjg0OWYiLCIyXzgwIjoiZDJhODU1YTUtMWIxYy00MzAwLTk0MGUtYTcwOGZhMWYxYmRlIiwiMl85MyI6IjVlZTI0MTM4LTVlMDMtNGI5ZC1hOTUzLTM4ZTgzM2YyODQ5ZiJ9LCJ0ZElEIjoidGVzdC10ZGlkLWNlcmJlcnVzLWNvb2tpZSIsImxleElkIjoidGVzdC1sZXhpZC1jZXJiZXJ1cy1jb29raWUiLCJjbGllbnRJZCI6InRlc3QtY2xpZW50aWQtY2VyYmVydXMtY29va2llIn0=');
-        console.log(JSON.parse(atob(localStorage.getItem('krg_crb'))));
+        // console.log(JSON.parse(atob(localStorage.getItem('krg_crb'))));
+
+        const tcString = 'CP98ofAP98ofAAcABBENAyEgAP_gAEPgAAYgJ0gB5C5MAAFCYGh2AIsEMAUGwBBAQEAgAAAAAAABABIAAAwAAEARAASIAAACGAAAIAIAAAAAAAAAAEAAYAAAAABAAAAAAAAAIAAAAAAAAEAIAAAgAAAgEAAAAAAQEAQAiAAEAIIAAEgAAAAAAAAAIAAEAAAAAAAAAAAAQAAAAQAAACgAAAAAAAAAAAAAABAEAQEAAAAAAAAAAAAAABACCdMCiABQAFgAVAAuABwAEAAMgAaAA8AB-AEQAI4ATAAxABoAD0AH4AQgAjgBOADugIOAhABFgCOAE0AJ-AXUAz4BrwDiAHUAVKAugBeYDBAGWAP7AlmBN4CcoE6QAAAA.f_wACHwAAAAA';
 
         var div_1_sizes = [
             [300, 250],
@@ -52,12 +54,24 @@
                 bids: [{
                     bidder: 'kargo',
                     params: {
-                        placementId: "13144370"
+                        placementId: "13144370",
+                        socialCanvas: {
+                            url: 'socan.url',
+                            segments: [ 'seg1', 'seg2' ],
+                            ksoSessionId: 'sessId',
+                            ksoPageViewId: 'pageviewId',
+                        },
                     }
                 },{
                     bidder: 'kargo2',
                     params: {
-                        placementId: "13144370"
+                        placementId: "13144370",
+                        socialCanvas: {
+                            url: 'socan.url',
+                            segments: [ 'seg1', 'seg2' ],
+                            ksoSessionId: 'sessId',
+                            ksoPageViewId: 'pageviewId',
+                        },
                     }
                 }]
             },
@@ -101,12 +115,24 @@
                 bids: [{
                     bidder: 'kargo',
                     params: {
-                        placementId: "13144370"
+                        placementId: "13144370",
+                        // socialCanvas: {
+                        //     url: 'socan.url',
+                        //     segments: [ 'seg1', 'seg2' ],
+                        //     ksoSessionId: 'sessId',
+                        //     ksoPageViewId: 'pageviewId',
+                        // },
                     }
                 },{
                     bidder: 'kargo2',
                     params: {
-                        placementId: "13144370"
+                        placementId: "13144370",
+                        // socialCanvas: {
+                        //     url: 'socan.url',
+                        //     segments: [ 'seg1', 'seg2' ],
+                        //     ksoSessionId: 'sessId',
+                        //     ksoPageViewId: 'pageviewId',
+                        // },
                     }
                 }]
             }
@@ -130,6 +156,28 @@
         pbjs.setConfig({ floors: {} });
 
         pbjs.setConfig({
+            enableTIDs: true,
+            consentManagement: {
+                gdpr: {
+                    cmpApi: 'static',
+                    consentData:  { getTCData: {
+                        tcString,
+                        gdprApplies: true,
+                    } }
+                }
+            },
+            schain: {
+                validation: 'strict',
+                config: {
+                    ver: '1.0',
+                    complete: 1,
+                    nodes: [ {
+                        asi: 'indirectseller.com',
+                        sid: '0001',
+                        hp: 1,
+                    } ]
+                }
+            },
             ortb2: {
                 // this is where the contextual data is placed
                 site: {

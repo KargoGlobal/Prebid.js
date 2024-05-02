@@ -1,4 +1,6 @@
 [
+    "consentManagement",
+    "schain",
     "kargoBidAdapter",
     "kargoBidAdapter2",
     "priceFloors",
