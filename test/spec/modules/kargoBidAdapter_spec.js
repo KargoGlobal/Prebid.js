@@ -427,7 +427,7 @@ describe('kargo adapter tests', function() {
       expect(payload.ts).to.be.a('number');
     });
 
-    it('copies badv, bcat, and cattax from the request object if present', function () {
+    it('copies badv, bcat, and cattax from the bidder request object if present', function() {
       let payload;
       const { bcat, badv, cattax, ...noPickedAttrOrtb } = bidderRequest.ortb2;
       payload = getPayloadFromTestBids([{
