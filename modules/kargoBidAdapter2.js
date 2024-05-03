@@ -143,11 +143,11 @@ const converter = ortbConverter({
     if (!isEmpty(ortb2Passthrough)) { deepSetValue(request, 'ext.ortb2', ortb2Passthrough); }
 
     // Add custom currency
-    const currencyObj = config.getConfig(CURRENCY.KEY);
-    const currency = (currencyObj && currencyObj.adServerCurrency)
-      ? currencyObj.adServerCurrency
-      : null;
-    if (currency !== null && currency !== CURRENCY.US_DOLLAR) { request.cur = currency; }
+    if (!isEmpty(request.cur) && request.cur[0] !== CURRENCY.US_DOLLAR) {
+      request.cur = request.cur[0];
+    } else {
+      delete request.cur;
+    }
 
     // Add custom raw cerberus values
     const rawCRB = STORAGE.getCookie(CERBERUS.KEY);

@@ -157,6 +157,14 @@
 
         pbjs.setConfig({
             enableTIDs: true,
+            currency: {
+                adServerCurrency: 'JPY',
+                defaultRates: {
+                    USD: {
+                        JPY: 110
+                    }
+                }
+            },
             consentManagement: {
                 gdpr: {
                     cmpApi: 'static',
@@ -181,8 +189,6 @@
             ortb2: {
                 // this is where the contextual data is placed
                 site: {
-                
-
                     // OpenRTB 2.5 spec / Content Taxonomy
                     cat: ["IAB2"],
                     bcat: ["IAB3"],
@@ -231,27 +237,27 @@
                         }
                     }
                 },
-                regs: {
-                    gpp: "abc1234",
-                    gpp_sid: [7],
-                    ext: {
-                        dsa: {
-                            dsarequired: 3,
-                            pubrender: 0,
-                            datatopub: 2,
-                            transparency: [
-                                {
-                                    domain: 'platform1domain.com',
-                                    dsaparams: [1]
-                                },
-                                {
-                                    domain: 'platform2domain.com',
-                                    dsaparams: [1, 2]
-                                }
-                            ]
-                        }
-                    }
-                },
+                // regs: {
+                //     gpp: "abc1234",
+                //     gpp_sid: [7],
+                //     ext: {
+                //         dsa: {
+                //             dsarequired: 3,
+                //             pubrender: 0,
+                //             datatopub: 2,
+                //             transparency: [
+                //                 {
+                //                     domain: 'platform1domain.com',
+                //                     dsaparams: [1]
+                //                 },
+                //                 {
+                //                     domain: 'platform2domain.com',
+                //                     dsaparams: [1, 2]
+                //                 }
+                //             ]
+                //         }
+                //     }
+                // },
                 bcat: ['1', '2', '3'],
                 badv: ['4', '5', '6']
             }
