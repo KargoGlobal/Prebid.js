@@ -1010,11 +1010,7 @@ describe('kargo adapter tests', function() {
 
         expect(payload.rawCRB).to.be.undefined;
         expect(payload.rawCRBLocalStorage).to.be.undefined;
-        expect(payload.user.crbIDs).to.deep.equal({});
-        expect(payload.user.tdID).to.be.undefined;
-        expect(payload.user.kargoID).to.be.undefined;
-        expect(payload.user.clientID).to.be.undefined;
-        expect(payload.user.optOut).to.be.undefined;
+        expect(payload.user).to.be.undefined;
       });
 
       it('fails gracefully if the CRB is invalid base 64 cookie', function() {
