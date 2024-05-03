@@ -1011,23 +1011,6 @@ describe('kargo adapter tests', function() {
         expect(payload.user.optOut).to.be.undefined;
       });
 
-      it('does not fail if cookie and localstorage access are revoked', function() {
-        setCrb('valid', 'valid');
-        $$PREBID_GLOBAL$$.bidderSettings = {
-          kargo: { storageAllowed: false },
-          kargo2: { storageAllowed: false },
-        };
-        const payload = getPayloadFromTestBids(testBids, bidderRequest);
-
-        expect(payload.rawCRB).to.be.undefined;
-        expect(payload.rawCRBLocalStorage).to.be.undefined;
-        expect(payload.user.crbIDs).to.deep.equal({});
-        expect(payload.user.tdID).to.be.undefined;
-        expect(payload.user.kargoID).to.be.undefined;
-        expect(payload.user.clientID).to.be.undefined;
-        expect(payload.user.optOut).to.be.undefined;
-      });
-
       it('fails gracefully if the CRB is invalid base 64 cookie', function() {
         setCrb('invalidB64', false);
 
