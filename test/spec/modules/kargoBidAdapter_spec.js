@@ -397,10 +397,6 @@ describe('kargo adapter tests', function() {
       expect(bidImp.id).to.equal('randomBidId');
       expect(bidImp.banner).to.deep.include({ sizes: [ [970, 250], [1, 1] ] });
       expect(bidImp.video).to.be.undefined;
-      expect(bidImp.bidRequestCount).to.equal(1);
-      expect(bidImp.bidderRequestCount).to.equal(1);
-      expect(bidImp.code).to.equal('displayAdunitCode');
-      expect(bidImp.ext.ortb2Imp).to.deep.include(defaultBidParams.ortb2Imp);
       expect(bidImp.fpd).to.deep.include({ gpid: '/1234/prebid/slot/path' });
       expect(bidImp.pid).to.equal('displayPlacement');
 
@@ -409,10 +405,6 @@ describe('kargo adapter tests', function() {
       expect(videoBidImp.id).to.equal('randomBidId2');
       expect(videoBidImp.banner).to.be.undefined;
       expect(videoBidImp.video).to.deep.include(outstreamBid.mediaTypes.video);
-      expect(videoBidImp.bidRequestCount).to.equal(1);
-      expect(videoBidImp.bidderRequestCount).to.equal(1);
-      expect(videoBidImp.code).to.equal('instreamAdunitCode');
-      expect(videoBidImp.ext.ortb2Imp).to.deep.include(defaultBidParams.ortb2Imp);
       expect(videoBidImp.fpd).to.deep.include({ gpid: '/1234/prebid/slot/path' });
       expect(videoBidImp.pid).to.equal('instreamPlacement');
 
@@ -424,7 +416,6 @@ describe('kargo adapter tests', function() {
 
       // General keys
       expect(payload.aid).to.equal('randomAuctionId');
-      expect(payload.device).to.deep.contain({ size: [ window.screen.width, window.screen.height ] });
       expect(payload.ext.ortb2.bcat).to.deep.equal(defaultBidParams.ortb2.bcat);
       expect(payload.ext.ortb2.badv).to.deep.equal(defaultBidParams.ortb2.badv);
       expect(payload.ext.ortb2.cattax).to.equal(defaultBidParams.ortb2.cattax);
@@ -436,7 +427,7 @@ describe('kargo adapter tests', function() {
       expect(payload.ts).to.be.a('number');
     });
 
-    it('copies badv, bcat, and cattax from the first bid request if present', function() {
+    it('copies badv, bcat, and cattax from the request object if present', function () {
       let payload;
       const { bcat, badv, cattax, ...noPickedAttrOrtb } = bidderRequest.ortb2;
       payload = getPayloadFromTestBids([{
@@ -447,8 +438,7 @@ describe('kargo adapter tests', function() {
           }
         }
       }], { ortb2: noPickedAttrOrtb });
-      expect(payload.ext.ortb2).to.exist.and.be.an('object');
-      expect(payload.ext.ortb2).to.not.include.keys('bcat', 'badv', 'cattax');
+      expect(payload.ext).to.be.undefined;
 
       payload = getPayloadFromTestBids(testBids);
       expect(payload.ext).to.deep.include({
@@ -462,24 +452,16 @@ describe('kargo adapter tests', function() {
       payload = getPayloadFromTestBids([{
         ...minimumBidParams,
         ortb2: {
-          badv: [ 'adv-1', 'adv-2' ],
-          user: {
-            key: 'value'
-          }
+          badv: [ 'adv-1', 'adv-2' ]
         }
       }, {
         ...minimumBidParams,
         ortb2: {
           badv: [ 'adv-3' ],
-          bcat: [ 'cat-1' ],
-          site: {
-            key2: 'value2'
-          }
+          bcat: [ 'cat-1' ]
         }
-      }]);
-      expect(payload.ext.ortb2).to.deep.include({
-        badv: [ 'adv-1', 'adv-2' ],
-      });
+      }], { ortb2: noPickedAttrOrtb });
+      expect(payload.ext).to.be.undefined;
     });
 
     it('pulls the site category from the bidder request ortb2 object', function() {
@@ -488,7 +470,7 @@ describe('kargo adapter tests', function() {
         ...minimumBidParams,
         ortb2: { site: { cat: [ 'test-cat' ] } }
       }]);
-      expect(payload.site).to.deep.include({ cat: 'test-cat' });
+      expect(payload.site).to.deep.include({ cat: [ 'IAB2' ] });
 
       payload = getPayloadFromTestBids(testBids);
       expect(payload.site).to.deep.include({ cat: [ 'IAB2' ] });
@@ -500,7 +482,7 @@ describe('kargo adapter tests', function() {
         ...minimumBidParams,
         ortb2: { site: { cat: [ 'test-cat-2' ] } }
       }]);
-      expect(payload.site).to.deep.include({ cat: 'test-cat' });
+      expect(payload.site).to.deep.include({ cat: [ 'IAB2' ] });
     });
 
     it('pulls the schain from the bidderRequest if it is populated', function() {
@@ -579,8 +561,8 @@ describe('kargo adapter tests', function() {
     it('provides the currency if it is not USD', function() {
       config.setConfig({ currency: {
         adServerCurrency: 'EUR',
-        rates: {},
-      }});
+        rates: {}
+      } });
       let payload = getPayloadFromTestBids(testBids);
       expect(payload.cur).to.equal('EUR');
     });
@@ -938,8 +920,8 @@ describe('kargo adapter tests', function() {
         const payload = getPayloadFromTestBids(testBids);
 
         expect(payload.imp[0].tid).to.equal('test-tid-1');
-        expect(payload.imp[1].tid).to.equal('');
-        expect(payload.imp[2].tid).to.equal(null);
+        expect(payload.imp[1].tid).to.be.undefined;
+        expect(payload.imp[2].tid).to.be.undefined;
         expect(payload.imp[3].tid).to.be.undefined;
         expect(payload.imp[4].tid).to.be.undefined;
       });
@@ -1023,23 +1005,6 @@ describe('kargo adapter tests', function() {
         expect(payload.rawCRB).to.be.undefined;
         expect(payload.rawCRBLocalStorage).to.be.undefined;
         expect(payload.user).to.be.undefined;
-      });
-
-      it('does not fail if cookie and localstorage access are revoked', function() {
-        setCrb('valid', 'valid');
-        $$PREBID_GLOBAL$$.bidderSettings = {
-          kargo: { storageAllowed: false },
-          kargo2: { storageAllowed: false },
-        };
-        const payload = getPayloadFromTestBids(testBids, bidderRequest);
-
-        expect(payload.rawCRB).to.be.undefined;
-        expect(payload.rawCRBLocalStorage).to.be.undefined;
-        expect(payload.user.crbIDs).to.deep.equal({});
-        expect(payload.user.tdID).to.be.undefined;
-        expect(payload.user.kargoID).to.be.undefined;
-        expect(payload.user.clientID).to.be.undefined;
-        expect(payload.user.optOut).to.be.undefined;
       });
 
       it('does not fail if cookie and localstorage access are revoked', function() {
@@ -1270,25 +1235,12 @@ describe('kargo adapter tests', function() {
 
       it('passes the user.data from the bidderRequest if available', function() {
         let payload;
-        payload = getPayloadFromTestBids([{
-          ...minimumBidParams,
-        }, {
-          ...minimumBidParams,
-          ortb2: { user: { data: { test: 'value' } } }
-        }]);
-        expect(payload.user.data).to.deep.equal([]);
+        payload = getPayloadFromTestBids(testBids);
+        expect(payload.user).to.be.undefined;
 
         deepSetValue(bidderRequest, 'ortb2.user.data', userData);
-        payload = getPayloadFromTestBids([{
-          ...minimumBidParams,
-          ortb2: { user: { data: { test: 'value' } } }
-        }, {
-          ...minimumBidParams,
-          ortb2: { user: { data: { test2: 'value2' } } }
-        }]);
-        expect(payload.user.data).to.deep.equal({
-          test: 'value'
-        });
+        payload = getPayloadFromTestBids(testBids);
+        expect(payload.user.data).to.deep.equal(userData);
       });
 
       it('fails gracefully if there is no localStorage', function() {
@@ -1333,7 +1285,7 @@ describe('kargo adapter tests', function() {
         expect(payload.device.sua).to.be.undefined;
       });
 
-      it('is provided if present in the first valid bid', function() {
+      it('is provided if present in bidderRequest', function() {
         deepSetValue(bidderRequest, 'ortb2.device.sua', {
           platform: {
             brand: 'macOS',
