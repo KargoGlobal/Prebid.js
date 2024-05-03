@@ -1232,7 +1232,7 @@ describe('kargo adapter tests', function() {
         });
       });
 
-      it('passes the user.data from the first bidderRequest if available', function() {
+      it('passes the user.data from the bidderRequest if available', function() {
         let payload;
         payload = getPayloadFromTestBids(testBids);
         expect(payload.user).to.be.undefined;
