@@ -1252,11 +1252,22 @@ describe('kargo adapter tests', function() {
 
       it('passes the user.data from the bidderRequest if available', function() {
         let payload;
-        payload = getPayloadFromTestBids(testBids);
+        payload = getPayloadFromTestBids([{
+          ...minimumBidParams,
+        }, {
+          ...minimumBidParams,
+          ortb2: { user: { data: { test: 'value' } } }
+        }]);
         expect(payload.user).to.be.undefined;
 
         deepSetValue(bidderRequest, 'ortb2.user.data', userData);
-        payload = getPayloadFromTestBids(testBids);
+        payload = getPayloadFromTestBids([{
+          ...minimumBidParams,
+          ortb2: { user: { data: { test: 'value' } } }
+        }, {
+          ...minimumBidParams,
+          ortb2: { user: { data: { test2: 'value2' } } }
+        }]);
         expect(payload.user.data).to.deep.equal(userData);
       });
 
