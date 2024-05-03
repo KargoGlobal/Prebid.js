@@ -162,7 +162,8 @@ describe('kargo adapter tests', function() {
   beforeEach(function() {
     oldBidderSettings = $$PREBID_GLOBAL$$.bidderSettings;
     $$PREBID_GLOBAL$$.bidderSettings = {
-      kargo2: { storageAllowed: true }
+      kargo: { storageAllowed: true },
+      kargo2: { storageAllowed: true },
     };
 
     bid = {
@@ -226,6 +227,7 @@ describe('kargo adapter tests', function() {
     sandbox.restore();
     clock.restore();
     $$PREBID_GLOBAL$$.bidderSettings = oldBidderSettings;
+    config.resetConfig();
   });
 
   describe('gvlid', function() {
@@ -236,7 +238,7 @@ describe('kargo adapter tests', function() {
 
   describe('code', function() {
     it('exposes the code kargo', function() {
-      expect(spec.code).to.exist.and.equal('kargo2');
+      expect(spec.code).to.exist.and.equal('kargo');
     });
   });
 
@@ -270,9 +272,6 @@ describe('kargo adapter tests', function() {
   describe('buildRequests', function() {
     let bids,
       bidderRequest,
-      undefinedCurrency,
-      noAdServerCurrency,
-      nonUSDAdServerCurrency,
       cookies = [],
       localStorageItems = [],
       session_id = null;
@@ -282,24 +281,10 @@ describe('kargo adapter tests', function() {
     });
 
     beforeEach(function() {
-      undefinedCurrency = false;
-      noAdServerCurrency = false;
-      nonUSDAdServerCurrency = false;
-      sandbox.stub(config, 'getConfig').callsFake(function (key) {
-        if (key === 'currency') {
-          if (undefinedCurrency) return undefined;
-
-          if (noAdServerCurrency) return {};
-
-          if (nonUSDAdServerCurrency) return { adServerCurrency: 'EUR' };
-
-          return { adServerCurrency: 'USD' };
-        }
-
-        if (key === 'debug') return true;
-        if (key === 'deviceAccess') return true;
-        throw new Error(`Config stub incomplete, missing key "${key}"`);
-      });
+      config.setConfig({ currency: {
+        adServerCurrency: 'USD',
+        rates: {}
+      } });
 
       bids = [
         bid,
@@ -364,6 +349,13 @@ describe('kargo adapter tests', function() {
     function setLocalStorageValue(name, value) {
       localStorageItems.push(name);
       localStorage.setItem(name, value);
+    }
+
+    function removeLocalStorage() {
+      $$PREBID_GLOBAL$$.bidderSettings = {
+        kargo: { storageAllowed: [ 'cookie' ] },
+        kargo2: { storageAllowed: [ 'cookie' ] },
+      };
     }
 
     const crbValues = {
@@ -550,13 +542,13 @@ describe('kargo adapter tests', function() {
     });
 
     it('does not send currency if it is not defined', function() {
-      undefinedCurrency = true;
+      config.setConfig({ currency: { adServerCurrency: undefined, rates: {} } });
       let payload = getPayloadFromTestBids(testBids);
       expect(payload.cur).to.be.undefined;
     });
 
     it('does not send currency if it is missing', function() {
-      noAdServerCurrency = true;
+      config.setConfig({ currency: { rates: {} } });
       let payload = getPayloadFromTestBids(testBids);
       expect(payload.cur).to.be.undefined;
     });
@@ -567,7 +559,10 @@ describe('kargo adapter tests', function() {
     });
 
     it('provides the currency if it is not USD', function() {
-      nonUSDAdServerCurrency = true;
+      config.setConfig({ currency: {
+        adServerCurrency: 'EUR',
+        rates: {}
+      } });
       let payload = getPayloadFromTestBids(testBids);
       expect(payload.cur).to.equal('EUR');
     });
@@ -976,8 +971,7 @@ describe('kargo adapter tests', function() {
       });
 
       it('retrieves CRB from cookies if localstorage is not functional', function() {
-        // Note: this does not cause localStorage to throw an error in Firefox so in that browser this
-        // test is not 100% true to its name
+        removeLocalStorage();
         sandbox.stub(localStorage, 'getItem').throws();
         setCrb('valid', 'invalid');
 
@@ -998,11 +992,19 @@ describe('kargo adapter tests', function() {
         expect(payload.rawCRB).to.be.undefined;
         expect(payload.rawCRBLocalStorage).to.be.undefined;
         expect(payload.user).to.be.undefined;
-        // expect(payload.user.crbIDs).to.be.undefined;
-        // expect(payload.user.tdID).to.be.undefined;
-        // expect(payload.user.kargoID).to.be.undefined;
-        // expect(payload.user.clientID).to.be.undefined;
-        // expect(payload.user.optOut).to.be.undefined;
+      });
+
+      it('does not fail if cookie and localstorage access are revoked', function() {
+        setCrb('valid', 'valid');
+        $$PREBID_GLOBAL$$.bidderSettings = {
+          kargo: { storageAllowed: false },
+          kargo2: { storageAllowed: false },
+        };
+        const payload = getPayloadFromTestBids(testBids, bidderRequest);
+
+        expect(payload.rawCRB).to.be.undefined;
+        expect(payload.rawCRBLocalStorage).to.be.undefined;
+        expect(payload.user).to.be.undefined;
       });
 
       it('fails gracefully if the CRB is invalid base 64 cookie', function() {
@@ -1013,11 +1015,6 @@ describe('kargo adapter tests', function() {
         expect(payload.rawCRB).to.equal(crbValues.invalidB64);
         expect(payload.rawCRBLocalStorage).to.be.undefined;
         expect(payload.user).to.be.undefined;
-        // expect(payload.user.crbIDs).to.be.undefined;
-        // expect(payload.user.tdID).to.be.undefined;
-        // expect(payload.user.kargoID).to.be.undefined;
-        // expect(payload.user.clientID).to.be.undefined;
-        // expect(payload.user.optOut).to.be.undefined;
       });
 
       it('fails gracefully if the CRB is invalid base 64 localStorage', function() {
@@ -1028,11 +1025,6 @@ describe('kargo adapter tests', function() {
         expect(payload.rawCRB).to.be.undefined;
         expect(payload.rawCRBLocalStorage).to.equal(crbValues.invalidB64Ls);
         expect(payload.user).to.be.undefined;
-        // expect(payload.user.crbIDs).to.be.undefined;
-        // expect(payload.user.tdID).to.be.undefined;
-        // expect(payload.user.kargoID).to.be.undefined;
-        // expect(payload.user.clientID).to.be.undefined;
-        // expect(payload.user.optOut).to.be.undefined;
       });
 
       [
@@ -1065,11 +1057,6 @@ describe('kargo adapter tests', function() {
             expect(payload.user.optOut).to.equal(false);
           } else {
             expect(payload.user).to.be.undefined;
-            // expect(payload.user.crbIDs).to.be.undefined;
-            // expect(payload.user.tdID).to.be.undefined;
-            // expect(payload.user.kargoID).to.be.undefined;
-            // expect(payload.user.clientID).to.be.undefined;
-            // expect(payload.user.optOut).to.be.undefined;
           }
         });
       });
@@ -1160,9 +1147,6 @@ describe('kargo adapter tests', function() {
         const payload = getPayloadFromTestBids([{ ...minimumBidParams }]);
 
         expect(payload.user).to.be.undefined;
-        // expect(payload.user.usp).to.be.undefined;
-        // expect(payload.user.gdpr).to.be.undefined;
-        // expect(payload.user.gpp).to.be.undefined;
       });
 
       it('fetches usp from the bidder request if present', function() {
@@ -1243,6 +1227,7 @@ describe('kargo adapter tests', function() {
       });
 
       it('fails gracefully if there is no localStorage', function() {
+        removeLocalStorage();
         sandbox.stub(localStorage, 'getItem').throws();
         let payload = getPayloadFromTestBids(testBids);
         expect(payload.user).to.be.undefined;
@@ -1425,6 +1410,7 @@ describe('kargo adapter tests', function() {
       });
 
       it('fails gracefully without localStorage', function() {
+        removeLocalStorage();
         sandbox.stub(localStorage, 'getItem').throws();
         let payload = getPayloadFromTestBids(testBids);
         expect(payload.page).to.be.undefined;

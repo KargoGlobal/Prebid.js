@@ -3,7 +3,6 @@ import { config } from '../src/config.js';
 import { registerBidder } from '../src/adapters/bidderFactory.js';
 import { getStorageManager } from '../src/storageManager.js';
 import { BANNER, VIDEO } from '../src/mediaTypes.js';
-import { ortbConverter } from '../libraries/ortbConverter/converter.js';
 
 const PREBID_VERSION = '$prebid.version$'
 
@@ -66,68 +65,6 @@ function isBidRequestValid(bid) {
   }
 
   return !!bid.params.placementId;
-}
-
-const converter = ortbConverter({
-  context: {
-    netRevenue: true,
-    ttl: 300,
-    currency: 'USD',
-  },
-  imp(buildImp, bidRequest, context) {
-    const imp = buildImp(bidRequest, context);
-
-    imp.pid = bidRequest.params.placementId;
-    imp.code = bidRequest.adUnitCode;
-
-    if (bidRequest.bidRequestCount > 0) {
-      imp.bidRequestCount = bidRequest.bidRequestCount;
-    }
-
-    if (bidRequest.bidderRequestsCount > 0) {
-      imp.bidderRequestCount = bidRequest.bidderRequestsCount;
-    }
-
-    if (bidRequest.bidderWinsCount > 0) {
-      imp.bidderWinCount = bidRequest.bidderWinsCount;
-    }
-
-    const gpid = deepAccess(bidRequest, 'ortb2Imp.ext.gpid') || deepAccess(bidRequest, 'ortb2Imp.ext.data.pbadslot');
-    if (gpid) {
-      imp.fpd = {
-        gpid: gpid
-      }
-    }
-
-    // Add full ortb2Imp object as backup
-    if (bidRequest.ortb2Imp) {
-      imp.ext = { ortb2Imp: bidRequest.ortb2Imp };
-    }
-
-    return imp;
-  }
-});
-function buildRequestsOrtb(bidRequests, bidderRequest) {
-  let data = converter.toORTB({ bidRequests, bidderRequest });
-
-  const firstBidRequest = bidRequests[0];
-
-  data.aid = firstBidRequest.auctionId;
-
-  // Add full ortb2 object as backup
-  if (firstBidRequest.ortb2) {
-    const siteCat = firstBidRequest.ortb2.site?.cat;
-    if (siteCat != null) {
-      data.site = { cat: siteCat };
-    }
-    data.ext = { ortb2: firstBidRequest.ortb2 };
-  }
-
-  return Object.assign({}, bidderRequest, {
-    method: BIDDER.REQUEST_METHOD,
-    url: `https://${BIDDER.HOST}${BIDDER.REQUEST_ENDPOINT}`,
-    data,
-  });
 }
 
 function buildRequests(validBidRequests, bidderRequest) {
@@ -248,8 +185,6 @@ function buildRequests(validBidRequests, bidderRequest) {
   if (!isEmpty(page)) {
     krakenParams.page = page;
   }
-
-  krakenParams.v = 'OLD';
 
   return Object.assign({}, bidderRequest, {
     method: BIDDER.REQUEST_METHOD,
@@ -589,8 +524,7 @@ export const spec = {
   supportedMediaTypes: BIDDER.SUPPORTED_MEDIA_TYPES,
   onTimeout,
   _getCrb,
-  _getSessionId,
-  buildRequestsOrtb,
+  _getSessionId
 };
 
 registerBidder(spec);
