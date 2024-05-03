@@ -1521,6 +1521,7 @@ describe('kargo adapter tests', function() {
       });
 
       it('fails gracefully without localStorage', function() {
+        removeLocalStorage();
         sandbox.stub(localStorage, 'getItem').throws();
         let payload = getPayloadFromTestBids(testBids);
         expect(payload.page).to.be.undefined;
