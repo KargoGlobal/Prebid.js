@@ -480,21 +480,21 @@ describe('kargo adapter tests', function() {
       let payload;
       payload = getPayloadFromTestBids([{
         ...minimumBidParams,
-        ortb2: { site: { cat: 'test-cat' } }
+        ortb2: { site: { cat: [ 'test-cat' ] } }
       }]);
-      expect(payload.site).to.deep.include({ cat: 'test-cat' });
+      expect(payload.site).to.deep.include({ cat: [ 'test-cat' ] });
 
       payload = getPayloadFromTestBids(testBids);
       expect(payload.site).to.be.undefined;
 
       payload = getPayloadFromTestBids([{
         ...minimumBidParams,
-        ortb2: { site: { cat: 'test-cat' } }
+        ortb2: { site: { cat: [ 'test-cat' ] } }
       }, {
         ...minimumBidParams,
-        ortb2: { site: { cat: 'test-cat-2' } }
+        ortb2: { site: { cat: [ 'test-cat-2' ] } }
       }]);
-      expect(payload.site).to.deep.include({ cat: 'test-cat' });
+      expect(payload.site).to.deep.include({ cat: [ 'test-cat' ] });
     });
 
     it('pulls the schain from the first bid if it is populated', function() {
