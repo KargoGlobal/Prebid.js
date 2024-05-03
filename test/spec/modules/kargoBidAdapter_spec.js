@@ -452,13 +452,19 @@ describe('kargo adapter tests', function() {
       payload = getPayloadFromTestBids([{
         ...minimumBidParams,
         ortb2: {
-          badv: [ 'adv-1', 'adv-2' ]
+          badv: [ 'adv-1', 'adv-2' ],
+          user: {
+            key: 'value'
+          }
         }
       }, {
         ...minimumBidParams,
         ortb2: {
           badv: [ 'adv-3' ],
-          bcat: [ 'cat-1' ]
+          bcat: [ 'cat-1' ],
+          site: {
+            key2: 'value2'
+          }
         }
       }], { ortb2: noPickedAttrOrtb });
       expect(payload.ext).to.be.undefined;
@@ -561,8 +567,8 @@ describe('kargo adapter tests', function() {
     it('provides the currency if it is not USD', function() {
       config.setConfig({ currency: {
         adServerCurrency: 'EUR',
-        rates: {}
-      } });
+        rates: {},
+      }});
       let payload = getPayloadFromTestBids(testBids);
       expect(payload.cur).to.equal('EUR');
     });
