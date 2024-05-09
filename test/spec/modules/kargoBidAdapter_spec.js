@@ -238,6 +238,19 @@ describe('kargo adapter tests', function() {
       expect(spec.isBidRequestValid({ params: {} })).to.equal(false);
     });
 
+    it('fails when the bid includes a non-string placement ID', function() {
+      [
+        false,
+        123456,
+        null,
+        {},
+        [],
+        /placementId/,
+      ].forEach(value => expect(spec.isBidRequestValid({
+        params: { placementId: value }
+      }), JSON.stringify(value)).to.equal(false));
+    });
+
     it('passes when the bid includes a placement ID', function () {
       expect(spec.isBidRequestValid({ params: { placementId: 'foo' } })).to.equal(true);
     });
@@ -664,7 +677,9 @@ describe('kargo adapter tests', function() {
               banner: {
                 sizes: [ [970, 250], [1, 1] ]
               },
-              native: {}
+              native: {
+                adTemplate: '<h1>This is a native ad</h1>',
+              }
             },
             adUnitCode: 'adunit-code-banner-outstream',
             sizes: [ [300, 250], [300, 600], [1, 1, 1], ['flex'] ],
@@ -691,7 +706,9 @@ describe('kargo adapter tests', function() {
                 context: 'outstream',
                 playerSize: [640, 380]
               },
-              native: {},
+              native: {
+                adTemplate: '<h1>This is a native ad</h1>',
+              },
             },
             adUnitCode: 'adunit-code-banner-outstream',
             sizes: [ [300, 250], [300, 600], [1, 1, 1], ['flex'] ],
@@ -721,7 +738,9 @@ describe('kargo adapter tests', function() {
               banner: {
                 sizes: [ [970, 250], [1, 1] ]
               },
-              native: {},
+              native: {
+                adTemplate: '<h1>This is a native ad</h1>',
+              },
             },
             adUnitCode: 'adunit-code-banner-outstream',
             sizes: [ [300, 250], [300, 600], [1, 1, 1], ['flex'] ],
@@ -740,7 +759,9 @@ describe('kargo adapter tests', function() {
           context: 'outstream',
           playerSize: [640, 380]
         };
-        const nativeImp = {};
+        const nativeImp = {
+          adTemplate: '<h1>This is a native ad</h1>',
+        };
 
         // Banner and Outstream
         expect(payload.imp[0].banner).to.deep.equal(bannerImp);
@@ -758,6 +779,56 @@ describe('kargo adapter tests', function() {
         expect(payload.imp[3].banner).to.deep.equal(bannerImp);
         expect(payload.imp[3].video).to.deep.equal(videoImp);
         expect(payload.imp[3].native).to.deep.equal(nativeImp);
+      });
+
+      it('pulls the transaction ID from the bid if it is a string', function() {
+        const tidValues = [
+          'test-tid',
+          null,
+          false,
+          123456,
+          true,
+          [],
+          {},
+        ];
+        const testBids = tidValues.map(tid => ({
+          ...bid,
+          ortb2Imp: {
+            ext: {
+              tid,
+            },
+          },
+        }));
+
+        const payload = getPayloadFromTestBids(testBids);
+
+        expect(payload.imp[0].tid, 'Index 0').to.equal('test-tid');
+        for (let i = 1; i < payload.imp.length; i++) {
+          expect(payload.imp[i].tid, `Index ${i}`).to.be.undefined;
+        }
+      });
+
+      it('pulls the code from the adUnitCode if it is a string', function() {
+        const codeValues = [
+          'test-code',
+          null,
+          false,
+          123456,
+          true,
+          [],
+          {},
+        ];
+        const testBids = codeValues.map(adUnitCode => ({
+          ...bid,
+          adUnitCode,
+        }));
+
+        const payload = getPayloadFromTestBids(testBids);
+
+        expect(payload.imp[0].code, 'Index 0').to.equal('test-code');
+        for (let i = 1; i < payload.imp.length; i++) {
+          expect(payload.imp[i].code, `Index ${i}`).to.be.undefined;
+        }
       });
 
       it('pulls gpid from ortb2Imp.ext.gpid then ortb2Imp.ext.data.pbadslot', function () {
@@ -890,6 +961,7 @@ describe('kargo adapter tests', function() {
           { currency: 'USD', floor: '1.99' },
           { currency: 'EUR', floor: 1.99 },
           { currency: 'USD', floor: 'foo' },
+          { currency: 'USD', floor: '$1.99' },
           { currency: 'USD', floor: null },
           { currency: 'USD', floor: true },
           { currency: 'USD', floor: false },
@@ -905,7 +977,7 @@ describe('kargo adapter tests', function() {
         // Valid floor
         expect(payload.imp[0].floor).to.equal(1.99);
         // Valid floor but string
-        expect(payload.imp[1].floor).to.equal('1.99'); // @TODO - convert this to a number?
+        expect(payload.imp[1].floor).to.equal(1.99);
         // Non-USD valid floor
         expect(payload.imp[2].floor).to.be.undefined;
         // Invalid floor

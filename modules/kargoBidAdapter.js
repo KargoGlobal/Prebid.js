@@ -60,11 +60,12 @@ let sessionId,
   requestCounter;
 
 function isBidRequestValid(bid) {
-  if (!bid || !bid.params) {
-    return false;
-  }
+  if (!bid) return false;
 
-  return !!bid.params.placementId;
+  if (!isPlainObject(bid.params) || isEmpty(bid.params)) return false;
+
+  // @TODO - check the length of placementId once it is confirmed that it will always be the same
+  return isStr(bid.params.placementId) && bid.params.placementId.trim() !== '';
 }
 
 function isArrayOfStrs(val) {
@@ -519,10 +520,19 @@ function sendTimeoutData(auctionId, auctionTimeout) {
 function getImpression(bid) {
   const imp = {
     id: bid.bidId,
-    tid: bid.ortb2Imp?.ext?.tid,
-    pid: bid.params.placementId,
-    code: bid.adUnitCode
+    pid: bid.params.placementId, // Validated in isBidRequestValid
   };
+
+  // Add TID
+  const tid = deepAccess(bid, 'ortb2Imp.ext.tid');
+  if (isStr(tid) && !isEmpty(tid)) {
+    imp.tid = tid;
+  }
+
+  // Add the code
+  if (isStr(bid.adUnitCode) && !isEmpty(bid.adUnitCode)) {
+    imp.code = bid.adUnitCode;
+  }
 
   if (bid.bidRequestsCount > 0) {
     imp.bidRequestCount = bid.bidRequestsCount;
@@ -537,29 +547,27 @@ function getImpression(bid) {
   }
 
   const gpid = deepAccess(bid, 'ortb2Imp.ext.gpid') || deepAccess(bid, 'ortb2Imp.ext.data.pbadslot');
-  if (gpid) {
-    imp.fpd = {
-      gpid: gpid
-    }
+  if (isStr(gpid) && !isEmpty(gpid)) {
+    deepSetValue(imp, 'fpd.gpid', gpid);
   }
 
   // Add full ortb2Imp object as backup
-  if (bid.ortb2Imp) {
-    imp.ext = { ortb2Imp: bid.ortb2Imp };
+  if (isPlainObject(bid.ortb2Imp) && !isEmpty(bid.ortb2Imp)) {
+    deepSetValue(imp, 'ext.ortb2Imp', bid.ortb2Imp);
   }
 
   if (bid.mediaTypes) {
     const { banner, video, native } = bid.mediaTypes;
 
-    if (banner) {
+    if (isPlainObject(banner) && !isEmpty(banner)) {
       imp.banner = banner;
     }
 
-    if (video) {
+    if (isPlainObject(video) && !isEmpty(video)) {
       imp.video = video;
     }
 
-    if (native) {
+    if (isPlainObject(native) && !isEmpty(native)) {
       imp.native = native;
     }
 
@@ -574,7 +582,14 @@ function getImpression(bid) {
       } catch (e) {
         logError('Kargo: getFloor threw an error: ', e);
       }
-      imp.floor = typeof floorInfo === 'object' && floorInfo.currency === 'USD' && !isNaN(parseInt(floorInfo.floor)) ? floorInfo.floor : undefined;
+
+      if (
+        isPlainObject(floorInfo) &&
+        floorInfo.currency === CURRENCY.US_DOLLAR &&
+        !isNaN(parseFloat(floorInfo.floor))
+      ) {
+        imp.floor = parseFloat(floorInfo.floor);
+      }
     }
   }
 
