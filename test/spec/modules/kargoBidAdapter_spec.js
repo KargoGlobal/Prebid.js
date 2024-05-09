@@ -16,6 +16,8 @@ describe('kargo adapter tests', function() {
     bidderWinsCount: 0,
     getFloor: () => {},
     ortb2: {
+      cattax: 1,
+      bcat: [ 'cat-1' ],
       device: {
         w: 1720,
         h: 1000,
@@ -409,7 +411,10 @@ describe('kargo adapter tests', function() {
       // General keys
       expect(payload.aid).to.equal('randomAuctionId');
       expect(payload.device).to.deep.equal({ size: [ window.screen.width, window.screen.height ] });
-      expect(payload.ext.ortb2).to.deep.equal(defaultBidParams.ortb2);
+      expect(payload.ext.ortb2).to.deep.equal({
+        cattax: 1,
+        bcat: [ 'cat-1' ],
+      });
       expect(payload.pbv).to.equal('$prebid.version$');
       expect(payload.requestCount).to.equal(spec.buildRequests.callCount - 1);
       expect(payload.sid).to.be.a('string').with.length(36);
@@ -419,61 +424,56 @@ describe('kargo adapter tests', function() {
     });
 
     it('copies the ortb2 object from the first bid request if present', function() {
+      const validOrtb2Sample1 = {
+        bcat: [ 'cat-1', 'cat-2', 'cat-3' ],
+        badv: [ 'adv-1', 'adv-2', 'adv-3' ],
+        cattax: 1,
+      };
+      const validOrtb2Sample2 = {
+        bcat: [ 'cat2-1', 'cat2-2', 'cat2-3' ],
+        badv: [ 'adv2-1', 'adv2-2', 'adv2-3' ],
+        cattax: 2,
+      };
+
       let payload;
       payload = getPayloadFromTestBids([{
         ...minimumBidParams,
-        ortb2: {
-          user: {
-            key: 'value'
-          }
-        }
+        ortb2: validOrtb2Sample1
       }]);
-      expect(payload.ext).to.deep.equal({ ortb2: {
-        user: { key: 'value' }
-      }});
+      expect(payload.ext.ortb2).to.deep.equal(validOrtb2Sample1);
 
       payload = getPayloadFromTestBids(testBids);
       expect(payload.ext).to.be.undefined;
 
       payload = getPayloadFromTestBids([{
         ...minimumBidParams,
-        ortb2: {
-          user: {
-            key: 'value'
-          }
-        }
+        ortb2: validOrtb2Sample1
       }, {
         ...minimumBidParams,
-        ortb2: {
-          site: {
-            key2: 'value2'
-          }
-        }
+        ortb2: validOrtb2Sample2
       }]);
-      expect(payload.ext).to.deep.equal({ortb2: {
-        user: { key: 'value' }
-      }});
+      expect(payload.ext.ortb2).to.deep.equal(validOrtb2Sample1);
     });
 
     it('pulls the site category from the first bids ortb2 object', function() {
       let payload;
       payload = getPayloadFromTestBids([{
         ...minimumBidParams,
-        ortb2: { site: { cat: 'test-cat' } }
+        ortb2: { site: { cat: [ 'test-cat' ] } }
       }]);
-      expect(payload.site).to.deep.equal({ cat: 'test-cat' });
+      expect(payload.site).to.deep.equal({ cat: [ 'test-cat' ] });
 
       payload = getPayloadFromTestBids(testBids);
       expect(payload.site).to.be.undefined;
 
       payload = getPayloadFromTestBids([{
         ...minimumBidParams,
-        ortb2: { site: { cat: 'test-cat' } }
+        ortb2: { site: { cat: [ 'test-cat' ] } }
       }, {
         ...minimumBidParams,
-        ortb2: { site: { cat: 'test-cat-2' } }
+        ortb2: { site: { cat: [ 'test-cat-2' ] } }
       }]);
-      expect(payload.site).to.deep.equal({ cat: 'test-cat' });
+      expect(payload.site).to.deep.equal({ cat: [ 'test-cat' ] });
     });
 
     it('pulls the schain from the first bid if it is populated', function() {
@@ -1223,25 +1223,41 @@ describe('kargo adapter tests', function() {
       });
 
       it('passes the user.data from the first bid request if availabale', function() {
+        const validUserData = [{
+          id: 'test-id',
+          name: 'test-name',
+          segment: [{
+            id: 'test-segment-id',
+            name: 'test-segment-name',
+            value: 'test-segment-value',
+          }],
+        }];
+        const validUserData2 = [{
+          id: 'test-id-2',
+          name: 'test-name-2',
+          segment: [{
+            id: 'test-segment-id-2',
+            name: 'test-segment-name-2',
+            value: 'test-segment-value-2',
+          }],
+        }];
         let payload;
         payload = getPayloadFromTestBids([{
           ...minimumBidParams,
         }, {
           ...minimumBidParams,
-          ortb2: { user: { data: { test: 'value' } } }
+          ortb2: { user: { data: validUserData } }
         }]);
         expect(payload.user.data).to.deep.equal([]);
 
         payload = getPayloadFromTestBids([{
           ...minimumBidParams,
-          ortb2: { user: { data: { test: 'value' } } }
+          ortb2: { user: { data: validUserData } }
         }, {
           ...minimumBidParams,
-          ortb2: { user: { data: { test2: 'value2' } } }
+          ortb2: { user: { data: validUserData2 } }
         }]);
-        expect(payload.user.data).to.deep.equal({
-          test: 'value'
-        });
+        expect(payload.user.data).to.deep.equal(validUserData);
       });
 
       it('fails gracefully if there is no localStorage', function() {
