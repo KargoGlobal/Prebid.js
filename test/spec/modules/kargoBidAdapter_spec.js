@@ -158,7 +158,7 @@ describe('kargo adapter tests', function() {
       ...defaultBidParams,
       bidder: 'kargo',
       params: {
-        placementId: 'displayPlacement'
+        placementId: '_displayPlacement'
       },
       mediaTypes: {
         banner: {
@@ -176,7 +176,7 @@ describe('kargo adapter tests', function() {
       ...defaultBidParams,
       bidder: 'kargo',
       params: {
-        placementId: 'instreamPlacement'
+        placementId: '_instreamPlacement'
       },
       mediaTypes: {
         video: {
@@ -238,7 +238,7 @@ describe('kargo adapter tests', function() {
       expect(spec.isBidRequestValid({ params: {} })).to.equal(false);
     });
 
-    it('fails when the bid includes a non-string placement ID', function() {
+    it('fails when the bid includes a non-string or invalid placement ID', function() {
       [
         false,
         123456,
@@ -246,17 +246,20 @@ describe('kargo adapter tests', function() {
         {},
         [],
         /placementId/,
+        'placement_id',
+        'placementId_',
+        't_est_place',
       ].forEach(value => expect(spec.isBidRequestValid({
         params: { placementId: value }
       }), JSON.stringify(value)).to.equal(false));
     });
 
     it('passes when the bid includes a placement ID', function () {
-      expect(spec.isBidRequestValid({ params: { placementId: 'foo' } })).to.equal(true);
+      expect(spec.isBidRequestValid({ params: { placementId: '_foo' } })).to.equal(true);
     });
 
     it('passes when the bid includes a placement ID and other keys', function() {
-      expect(spec.isBidRequestValid({ params: { placementId: 'foo', other: 'value' } })).to.equal(true);
+      expect(spec.isBidRequestValid({ params: { placementId: '_foo', other: 'value' } })).to.equal(true);
     });
 
     it('passes when the full bid information is provided', function() {
@@ -401,7 +404,7 @@ describe('kargo adapter tests', function() {
       expect(bidImp.code).to.equal('displayAdunitCode');
       expect(bidImp.ext.ortb2Imp).to.deep.equal(defaultBidParams.ortb2Imp);
       expect(bidImp.fpd).to.deep.equal({ gpid: '/1234/prebid/slot/path' });
-      expect(bidImp.pid).to.equal('displayPlacement');
+      expect(bidImp.pid).to.equal('_displayPlacement');
 
       // Video bid
       const videoBidImp = payload.imp[1];
@@ -413,7 +416,7 @@ describe('kargo adapter tests', function() {
       expect(videoBidImp.code).to.equal('instreamAdunitCode');
       expect(videoBidImp.ext.ortb2Imp).to.deep.equal(defaultBidParams.ortb2Imp);
       expect(videoBidImp.fpd).to.deep.equal({ gpid: '/1234/prebid/slot/path' });
-      expect(videoBidImp.pid).to.equal('instreamPlacement');
+      expect(videoBidImp.pid).to.equal('_instreamPlacement');
 
       // User
       expect(payload.user).to.be.an('object');
@@ -1731,17 +1734,17 @@ describe('kargo adapter tests', function() {
       bids: [{
         bidId: 1,
         params: {
-          placementId: 'foo'
+          placementId: '_foo'
         }
       }, {
         bidId: 2,
         params: {
-          placementId: 'bar'
+          placementId: '_bar'
         }
       }, {
         bidId: 3,
         params: {
-          placementId: 'bar'
+          placementId: '_bar'
         }
       }, {
         bidId: 4,
@@ -1751,12 +1754,12 @@ describe('kargo adapter tests', function() {
       }, {
         bidId: 5,
         params: {
-          placementId: 'bar'
+          placementId: '_bar'
         }
       }, {
         bidId: 6,
         params: {
-          placementId: 'bar'
+          placementId: '_bar'
         }
       }]
     });

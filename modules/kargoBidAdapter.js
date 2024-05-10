@@ -1,4 +1,4 @@
-import { _each, isEmpty, buildUrl, deepAccess, pick, triggerPixel, logError, isStr, isNumber, deepSetValue, isArray, isInteger, isPlainObject, isBoolean, isArrayOfNums } from '../src/utils.js';
+import { _each, isEmpty, buildUrl, deepAccess, pick, triggerPixel, logError, isStr, isNumber, deepSetValue, isArray, isInteger, isPlainObject, isBoolean, isArrayOfNums, logWarn, uniques } from '../src/utils.js';
 import { config } from '../src/config.js';
 import { registerBidder } from '../src/adapters/bidderFactory.js';
 import { getStorageManager } from '../src/storageManager.js';
@@ -64,8 +64,15 @@ function isBidRequestValid(bid) {
 
   if (!isPlainObject(bid.params) || isEmpty(bid.params)) return false;
 
-  // @TODO - check the length of placementId once it is confirmed that it will always be the same
-  return isStr(bid.params.placementId) && bid.params.placementId.trim() !== '';
+  const validPlacementId = isStr(bid.params.placementId) &&
+    bid.params.placementId.trim() !== '' &&
+    bid.params.placementId[0] === '_';
+
+  if (!validPlacementId) {
+    logError('Kargo: Invalid placement ID. Placement ID must be passed as `placementId` and be a string that starts with an underscore');
+  }
+
+  return validPlacementId;
 }
 
 function isArrayOfStrs(val) {
@@ -75,10 +82,11 @@ function isArrayOfStrs(val) {
 }
 
 function buildRequests(validBidRequests, bidderRequest) {
+  const improperTypes = []
   const impressions = [];
 
   _each(validBidRequests, bid => {
-    impressions.push(getImpression(bid))
+    impressions.push(getImpression(bid, improperTypes))
   });
 
   const metadata = getAllMetadata(bidderRequest);
@@ -96,18 +104,22 @@ function buildRequests(validBidRequests, bidderRequest) {
   });
 
   // Directly modifies krakenParams
-  setUserIds(krakenParams, validBidRequests, bidderRequest);
+  setUserIds(krakenParams, validBidRequests, bidderRequest, improperTypes);
 
   // Add the auction ID if it is a string
-  const aid = deepAccess(validBidRequests, '0.auctionId');
+  const aid = deepAccess(validBidRequests, '0.auctionId', null);
   if (isStr(aid) && !isEmpty(aid)) {
     krakenParams.aid = aid;
+  } else if (aid !== null) {
+    improperTypes.push('validBidRequests.0.auctionId');
   }
 
   // Add the page URL if it is a string
-  const pageUrl = metadata.pageURL;
+  const pageUrl = deepAccess(bidderRequest, 'refererInfo.page', null);
   if (isStr(pageUrl) && !isEmpty(pageUrl)) {
     krakenParams.url = pageUrl;
+  } else if (pageUrl !== null) {
+    improperTypes.push('bidderRequest.refererInfo.page');
   }
 
   // Add the window size (if it is available)
@@ -118,35 +130,45 @@ function buildRequests(validBidRequests, bidderRequest) {
   }
 
   // Add the timeout if it is a number
-  const timeout = bidderRequest.timeout;
+  const timeout = deepAccess(bidderRequest, 'timeout', null);
   if (isNumber(timeout)) {
     krakenParams.timeout = timeout;
+  } else if (timeout !== null) {
+    improperTypes.push('bidderRequest.timeout');
   }
 
   // Add site.cat, bcat, badv, and cattax to the request
-  const firstBidRequestOrtb = deepAccess(validBidRequests, '0.ortb2');
+  const firstBidRequestOrtb = deepAccess(validBidRequests, '0.ortb2', null);
   if (!isEmpty(firstBidRequestOrtb)) {
-    const siteCat = deepAccess(firstBidRequestOrtb, 'site.cat');
+    const siteCat = deepAccess(firstBidRequestOrtb, 'site.cat', null);
     if (
       isArrayOfStrs(siteCat) &&
       !isEmpty(siteCat)
     ) {
       deepSetValue(krakenParams, 'site.cat', siteCat);
+    } else if (siteCat !== null) {
+      improperTypes.push('validBidRequests.0.ortb2.site.cat');
     }
 
-    const bcat = deepAccess(firstBidRequestOrtb, 'bcat');
+    const bcat = deepAccess(firstBidRequestOrtb, 'bcat', null);
     if (isArrayOfStrs(bcat) && !isEmpty(bcat)) {
       deepSetValue(krakenParams, 'ext.ortb2.bcat', bcat);
+    } else if (bcat !== null) {
+      improperTypes.push('validBidRequests.0.ortb2.bcat');
     }
 
-    const badv = deepAccess(firstBidRequestOrtb, 'badv');
+    const badv = deepAccess(firstBidRequestOrtb, 'badv', null);
     if (isArrayOfStrs(badv) && !isEmpty(badv)) {
       deepSetValue(krakenParams, 'ext.ortb2.badv', badv);
+    } else if (badv !== null) {
+      improperTypes.push('validBidRequests.0.ortb2.badv');
     }
 
-    const cattax = deepAccess(firstBidRequestOrtb, 'cattax');
+    const cattax = deepAccess(firstBidRequestOrtb, 'cattax', null);
     if (isNumber(cattax) && isInteger(cattax)) {
       deepSetValue(krakenParams, 'ext.ortb2.cattax', cattax);
+    } else if (cattax !== null) {
+      improperTypes.push('validBidRequests.0.ortb2.cattax');
     }
 
     // Alternative:
@@ -154,13 +176,15 @@ function buildRequests(validBidRequests, bidderRequest) {
   }
 
   // Add schain
-  const schain = deepAccess(validBidRequests, '0.schain');
+  const schain = deepAccess(validBidRequests, '0.schain', null);
   if (
     isPlainObject(schain) &&
     !isEmpty(schain) &&
     !isEmpty(deepAccess(schain, 'nodes'))
   ) {
     krakenParams.schain = schain;
+  } else if (schain !== null) {
+    improperTypes.push('validBidRequests.0.schain');
   }
 
   // Add currency if not USD
@@ -179,19 +203,31 @@ function buildRequests(validBidRequests, bidderRequest) {
   }
 
   // Pull Social Canvas segments and embed URL
-  const socialCanvas = deepAccess(validBidRequests, REQUEST_KEYS.SOCIAL_CANVAS);
+  const socialCanvas = deepAccess(validBidRequests, REQUEST_KEYS.SOCIAL_CANVAS, null);
   if (isPlainObject(socialCanvas) && !isEmpty(socialCanvas)) {
     if (isArrayOfStrs(socialCanvas.segments) && !isEmpty(socialCanvas.segments)) {
       deepSetValue(krakenParams, 'socan.segments', socialCanvas.segments);
+    } else if (typeof socialCanvas.segments !== 'undefined') {
+      improperTypes.push('validBidRequests.0.params.socialCanvas.segments');
+      logError('Kargo: params.socialCanvas.segments must be an array of strings if provided');
     }
     if (isStr(socialCanvas.url) && !isEmpty(socialCanvas.url)) {
       deepSetValue(krakenParams, 'socan.url', socialCanvas.url);
+    } else if (typeof socialCanvas.url !== 'undefined') {
+      improperTypes.push('validBidRequests.0.params.socialCanvas.url');
+      logError('Kargo: params.socialCanvas.url must be a string if provided');
     }
     if (isStr(socialCanvas.ksoSessionId) && !isEmpty(socialCanvas.ksoSessionId)) {
       deepSetValue(krakenParams, 'socan.ksoSessionId', socialCanvas.ksoSessionId);
+    } else if (typeof socialCanvas.ksoSessionId !== 'undefined') {
+      improperTypes.push('validBidRequests.0.params.socialCanvas.ksoSessionId');
+      logError('Kargo: params.socialCanvas.ksoSessionId must be a string if provided');
     }
     if (isStr(socialCanvas.ksoPageViewId) && !isEmpty(socialCanvas.ksoPageViewId)) {
       deepSetValue(krakenParams, 'socan.ksoPageViewId', socialCanvas.ksoPageViewId);
+    } else if (typeof socialCanvas.ksoPageViewId !== 'undefined') {
+      improperTypes.push('validBidRequests.0.params.socialCanvas.ksoPageViewId');
+      logError('Kargo: params.socialCanvas.ksoPageViewId must be a string if provided');
     }
   }
 
@@ -235,6 +271,15 @@ function buildRequests(validBidRequests, bidderRequest) {
   }
   if (isStr(cerberusPageUrl)) {
     deepSetValue(krakenParams, 'page.url', cerberusPageUrl);
+  }
+
+  // Send the type validation failures
+  if (!isEmpty(improperTypes)) {
+    deepSetValue(
+      krakenParams,
+      'ext.krg.verr',
+      improperTypes.filter(uniques)
+    );
   }
 
   return Object.assign({}, bidderRequest, {
@@ -398,20 +443,28 @@ function getLocalStorageSafely(key) {
   }
 }
 
-function setUserIds(krakenParams, validBidRequests, bidderRequest) {
+function setUserIds(krakenParams, validBidRequests, bidderRequest, improperTypes) {
   const crb = _getCrb();
   if (isPlainObject(crb.syncIds) && !isEmpty(crb.syncIds)) {
     deepSetValue(krakenParams, 'user.crbIDs', crb.syncIds);
   }
 
   // Pull Trade Desk ID
-  const tdidAdapter = deepAccess(validBidRequests, REQUEST_KEYS.TDID_ADAPTER);
+  const tdidAdapter = deepAccess(validBidRequests, REQUEST_KEYS.TDID_ADAPTER, null);
+  let wasTdidValid = false;
   if (isStr(tdidAdapter)) {
+    wasTdidValid = true;
     deepSetValue(krakenParams, 'user.tdID', tdidAdapter);
   } else if (isPlainObject(tdidAdapter) && isStr(tdidAdapter.id)) {
+    wasTdidValid = true;
+    logWarn('Kargo: The ID provided for tdid is improperly formatted as an object not a string');
     deepSetValue(krakenParams, 'user.tdID', tdidAdapter.id);
   } else if (isStr(crb.tdID)) {
     deepSetValue(krakenParams, 'user.tdID', crb.tdID);
+  }
+  if (tdidAdapter !== null && !wasTdidValid) {
+    logError('Kargo: The ID provided for tdid is improperly formatted and not being sent to Kargo bidders');
+    improperTypes.push('validBidRequests.0.userId.tdid');
   }
 
   // Kargo ID
@@ -483,9 +536,8 @@ function getClientId() {
   return crb.clientId;
 }
 
-function getAllMetadata(bidderRequest) {
+function getAllMetadata() {
   return {
-    pageURL: deepAccess(bidderRequest, 'refererInfo.page'),
     rawCRB: STORAGE.getCookie(CERBERUS.KEY),
     rawCRBLocalStorage: getLocalStorageSafely(CERBERUS.KEY)
   };
@@ -517,38 +569,51 @@ function sendTimeoutData(auctionId, auctionTimeout) {
   } catch (e) {}
 }
 
-function getImpression(bid) {
+function getImpression(bid, improperTypes) {
   const imp = {
     id: bid.bidId,
     pid: bid.params.placementId, // Validated in isBidRequestValid
   };
 
   // Add TID
-  const tid = deepAccess(bid, 'ortb2Imp.ext.tid');
+  const tid = deepAccess(bid, 'ortb2Imp.ext.tid', null);
   if (isStr(tid) && !isEmpty(tid)) {
     imp.tid = tid;
+  } else if (tid !== null) {
+    improperTypes.push('validBidRequests.0.ortb2Imp.ext.tid');
   }
 
   // Add the code
-  if (isStr(bid.adUnitCode) && !isEmpty(bid.adUnitCode)) {
-    imp.code = bid.adUnitCode;
+  const adUnitCode = deepAccess(bid, 'adUnitCode', null);
+  if (isStr(adUnitCode) && !isEmpty(adUnitCode)) {
+    imp.code = adUnitCode;
+  } else if (adUnitCode !== null) {
+    improperTypes.push('validBidRequests.0.adUnitCode');
   }
 
-  if (bid.bidRequestsCount > 0) {
+  if (isInteger(bid.bidRequestsCount) && bid.bidRequestsCount > 0) {
     imp.bidRequestCount = bid.bidRequestsCount;
   }
 
-  if (bid.bidderRequestsCount > 0) {
+  if (isInteger(bid.bidderRequestsCount) && bid.bidderRequestsCount > 0) {
     imp.bidderRequestCount = bid.bidderRequestsCount;
   }
 
-  if (bid.bidderWinsCount > 0) {
+  if (isInteger(bid.bidderWinsCount) && bid.bidderWinsCount > 0) {
     imp.bidderWinCount = bid.bidderWinsCount;
   }
 
-  const gpid = deepAccess(bid, 'ortb2Imp.ext.gpid') || deepAccess(bid, 'ortb2Imp.ext.data.pbadslot');
+  const gpid1 = deepAccess(bid, 'ortb2Imp.ext.gpid', null);
+  const gpid2 = deepAccess(bid, 'ortb2Imp.ext.data.pbadslot', null);
+  const gpid = isStr(gpid1) && !isEmpty(gpid1) ? gpid1 : gpid2;
   if (isStr(gpid) && !isEmpty(gpid)) {
     deepSetValue(imp, 'fpd.gpid', gpid);
+  }
+  if (gpid1 !== null && (!isStr(gpid1) || isEmpty(gpid1))) {
+    improperTypes.push('validBidRequests.0.ortb2Imp.ext.gpid');
+  }
+  if (gpid2 !== null && (!isStr(gpid2) || isEmpty(gpid2))) {
+    improperTypes.push('validBidRequests.0.ortb2Imp.ext.data.pbadslot');
   }
 
   // Add full ortb2Imp object as backup
