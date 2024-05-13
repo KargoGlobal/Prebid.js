@@ -1827,10 +1827,10 @@ describe('kargo adapter tests', function() {
         }
       }
 
-      let bids = spec.interpretResponse(response, bidderRequest);
+      let result = spec.interpretResponse(response, bidderRequest);
 
       // Test properties of bidResponses
-      bids.bidResponses.forEach(bid => {
+      result.bids.forEach(bid => {
         expect(bid).to.have.property('requestId');
         expect(bid).to.have.property('cpm');
         expect(bid).to.have.property('width');
@@ -1842,12 +1842,12 @@ describe('kargo adapter tests', function() {
       });
 
       // Test properties of fledgeAuctionConfigs
-      expect(bids.fledgeAuctionConfigs).to.have.lengthOf(3);
+      expect(result.fledgeAuctionConfigs).to.have.lengthOf(3);
 
       const expectedBidIds = ['1', '3', '5']; // Expected bidIDs
-      bids.fledgeAuctionConfigs.forEach(config => {
-        expect(config).to.have.property('bidID');
-        expect(expectedBidIds).to.include(config.bidID);
+      result.fledgeAuctionConfigs.forEach(config => {
+        expect(config).to.have.property('bidId');
+        expect(expectedBidIds).to.include(config.bidId);
 
         expect(config).to.have.property('config').that.is.an('object');
         expect(config.config).to.have.property('seller', 'https://kargo.com');

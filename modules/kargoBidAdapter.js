@@ -241,7 +241,7 @@ function interpretResponse(response, bidRequest) {
 
     if (adUnit.auctionConfig) {
       fledgeAuctionConfigs.push({
-        bidID,
+        bidId: bidID,
         config: adUnit.auctionConfig
       })
     }
@@ -249,7 +249,7 @@ function interpretResponse(response, bidRequest) {
 
   if (fledgeAuctionConfigs.length > 0) {
     return {
-      bidResponses,
+      bids: bidResponses,
       fledgeAuctionConfigs
     }
   } else {
