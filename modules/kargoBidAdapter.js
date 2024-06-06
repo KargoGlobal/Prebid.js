@@ -305,7 +305,7 @@ function getExtensions(ortb2, refererInfo) {
   const ext = {};
   if (ortb2) ext.ortb2 = ortb2;
   if (refererInfo) ext.refererInfo = refererInfo;
-  return Object.keys(ext).length > 0 ? ext : undefined;
+  return ext;
 }
 
 function _generateRandomUUID() {

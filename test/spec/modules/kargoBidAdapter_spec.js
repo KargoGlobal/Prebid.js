@@ -476,6 +476,7 @@ describe('kargo adapter tests', function() {
 
       delete bidderRequest.refererInfo
       payload = getPayloadFromTestBids(testBids);
+      console.log(JSON.stringify(payload))
       expect(payload.ext).to.be.undefined;
     });
 
