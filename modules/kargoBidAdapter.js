@@ -558,7 +558,8 @@ export const spec = {
   supportedMediaTypes: BIDDER.SUPPORTED_MEDIA_TYPES,
   onTimeout,
   _getCrb,
-  _getSessionId
+  _getSessionId,
+  CERBERUS
 };
 
 registerBidder(spec);
