@@ -1898,6 +1898,18 @@ describe('kargo adapter tests', function() {
       return syncs;
     }
 
+    function buildPixelSyncUrls(baseUrl = 'https://crb.kargo.com/api/v1/initsyncimg/random-client-id-string?seed=3205e885-8d37-4139-b47e-f82cff268000&gdpr=0&gdpr_consent=&us_privacy=&gpp=&gpp_sid=') {
+      let syncs = [];
+      for (let i = 0; i < spec.CERBERUS.SYNC_COUNT; i++) {
+        syncs.push({
+          type: 'image',
+          url: `${baseUrl}&idx=${i}`
+        });
+      }
+
+      return syncs;
+    }
+
     function getUserSyncs(gdpr, usp, gpp) {
       return spec.getUserSyncs(
         { iframeEnabled: true },
@@ -1935,10 +1947,23 @@ describe('kargo adapter tests', function() {
       expect(getUserSyncs(undefined, '1YYY')).to.deep.equal([]);
     });
 
-    it('returns no syncs if iframe syncing is not allowed', function() {
+    it('returns no syncs if iframe syncing is not allowed and image sync is not specified', function() {
       expect(spec.getUserSyncs({ iframeEnabled: false }, null, undefined, undefined, undefined))
         .to.deep.equal([]);
       expect(spec.getUserSyncs({}, null, undefined, undefined, undefined))
+        .to.deep.equal([]);
+    });
+
+    it('returns pixel syncs when pixel syncing is allowed', function() {
+      const gdpr = { gdprApplies: false, consentString: '' };
+      const usp = '';
+      const gpp = { consentString: '', applicableSections: [] };
+      expect(spec.getUserSyncs({ pixelEnabled: true }, null, gdpr, usp, gpp))
+        .to.deep.equal(buildPixelSyncUrls());
+    });
+
+    it('returns no syncs if both iframe and pixel syncing are not allowed', function() {
+      expect(spec.getUserSyncs({ iframeEnabled: false, pixelEnabled: false }, null, undefined, undefined, undefined))
         .to.deep.equal([]);
     });
 
