@@ -270,7 +270,7 @@ function getUserSyncs(syncOptions, _, gdprConsent, usPrivacy, gppConsent) {
   const gppApplicableSections = Array.isArray(gppConsent?.applicableSections) ? gppConsent.applicableSections.join(',') : '';
 
   // don't sync if opted out via usPrivacy
-  if (typeof usPrivacy === 'string' && usPrivacy.length === 4 && usPrivacy[0] === '1' && usPrivacy[2] === 'Y') {
+  if (typeof usPrivacy == 'string' && usPrivacy.length == 4 && usPrivacy[0] == 1 && usPrivacy[2] == 'Y') {
     return syncs;
   }
 
