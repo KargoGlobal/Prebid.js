@@ -464,7 +464,7 @@ function sendTimeoutData(auctionId, auctionTimeout) {
     method: 'GET',
     keepalive: true,
   }).catch((e) => {
-    // Do nothing
+    logError('Kargo: sendTimeoutData/fetch threw an error: ', e);
   });
 }
 
