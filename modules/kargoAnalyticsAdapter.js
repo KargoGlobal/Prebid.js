@@ -19,6 +19,7 @@ const DEFAULT_CONFIG = {
   sampling: 100, // Percentage of auctions to track (1-100)
   sendWinEvents: true, // Send individual win events
   sendDelay: SEND_DELAY, // Delay before sending auction data (ms)
+  reportKargoWins: false, // When false, only report when Kargo loses (privacy-friendly default)
 };
 
 /// /////////// STATE //////////////
@@ -83,17 +84,19 @@ function extractSizes(mediaTypes) {
 
 /**
  * Extracts privacy consent data from bidder request
+ * Follows industry standard - sends full consent strings
  */
 function extractConsent(bidderRequest) {
   if (!bidderRequest) return null;
 
   const consent = {};
 
-  // GDPR
+  // GDPR (TCF)
   if (bidderRequest.gdprConsent) {
     consent.gdpr = {
       applies: !!bidderRequest.gdprConsent.gdprApplies,
-      consentString: bidderRequest.gdprConsent.consentString ? '[present]' : null,
+      consentString: bidderRequest.gdprConsent.consentString || null,
+      apiVersion: bidderRequest.gdprConsent.apiVersion || null,
     };
   }
 
@@ -105,7 +108,7 @@ function extractConsent(bidderRequest) {
   // GPP
   if (bidderRequest.gppConsent) {
     consent.gpp = {
-      gppString: bidderRequest.gppConsent.gppString ? '[present]' : null,
+      gppString: bidderRequest.gppConsent.gppString || null,
       applicableSections: bidderRequest.gppConsent.applicableSections,
     };
   }
@@ -446,6 +449,7 @@ const eventHandlers = {
 
 /**
  * Extracts Kargo-specific metrics from auction cache
+ * When reportKargoWins is false, only includes data where Kargo lost (to help bid higher)
  */
 function extractKargoMetrics(auctionCache) {
   const kargoBids = [];
@@ -454,13 +458,21 @@ function extractKargoMetrics(auctionCache) {
     Object.values(adUnit.bids || {}).forEach(bid => {
       if (bid.isKargo) {
         const winningBid = auctionCache.winningBids[code];
+        const kargoWon = bid.won || false;
+
+        // If reportKargoWins is false, skip auctions where Kargo won
+        // This addresses publisher concerns about bid shading
+        if (!_config.reportKargoWins && kargoWon) {
+          return; // Skip this bid - don't report Kargo wins
+        }
+
         kargoBids.push({
           adUnitCode: code,
           status: bid.status,
           cpm: bid.cpmUsd,
           responseTime: bid.responseTime,
-          won: bid.won || false,
-          // Competitive metrics
+          won: kargoWon,
+          // Competitive metrics (only meaningful when Kargo loses)
           winningBidder: winningBid?.bidder || null,
           winningCpm: winningBid?.cpmUsd || null,
           marginToWin: winningBid?.cpmUsd && bid.cpmUsd
@@ -475,7 +487,7 @@ function extractKargoMetrics(auctionCache) {
   return {
     bidCount: kargoBids.length,
     bids: kargoBids,
-    winCount: kargoBids.filter(b => b.won).length,
+    winCount: _config.reportKargoWins ? kargoBids.filter(b => b.won).length : null, // Redact win count when not reporting wins
     avgResponseTime: average(kargoBids.map(b => b.responseTime)),
     avgCpm: average(kargoBids.filter(b => b.cpm).map(b => b.cpm)),
   };
@@ -518,20 +530,33 @@ function formatAuctionPayload(auctionId, auctionCache) {
     },
 
     // Per-ad-unit summary
-    adUnits: Object.entries(auctionCache.adUnits || {}).map(([code, adUnit]) => ({
-      code,
-      mediaTypes: adUnit.mediaTypes,
-      bidders: Object.values(adUnit.bids || {}).map(bid => ({
-        bidder: bid.bidder,
-        status: bid.status,
-        cpm: bid.status === 'received' ? bid.cpmUsd : null,
-        responseTime: bid.responseTime || null,
-        isKargo: bid.isKargo || false,
-        won: bid.won || false,
-      })),
-      winningBidder: auctionCache.winningBids[code]?.bidder || null,
-      winningCpm: auctionCache.winningBids[code]?.cpmUsd || null,
-    })),
+    // When reportKargoWins is false, we completely exclude ad units where Kargo won
+    // This ensures we can't infer wins from redacted data
+    adUnits: Object.entries(auctionCache.adUnits || {})
+      .filter(([code]) => {
+        const winningBid = auctionCache.winningBids[code];
+        const kargoWonThisUnit = winningBid?.bidder === KARGO_BIDDER_CODE;
+        // If reportKargoWins is false and Kargo won, exclude this ad unit entirely
+        return _config.reportKargoWins || !kargoWonThisUnit;
+      })
+      .map(([code, adUnit]) => {
+        const winningBid = auctionCache.winningBids[code];
+
+        return {
+          code,
+          mediaTypes: adUnit.mediaTypes,
+          bidders: Object.values(adUnit.bids || {}).map(bid => ({
+            bidder: bid.bidder,
+            status: bid.status,
+            cpm: bid.status === 'received' ? bid.cpmUsd : null,
+            responseTime: bid.responseTime || null,
+            isKargo: bid.isKargo || false,
+            won: bid.won || false,
+          })),
+          winningBidder: winningBid?.bidder || null,
+          winningCpm: winningBid?.cpmUsd || null,
+        };
+      }),
 
     // Errors (for debugging)
     errors: auctionCache.errors || [],
@@ -623,6 +648,7 @@ function sendAuctionAnalytics(auctionId) {
 
 /**
  * Sends individual win analytics data
+ * When reportKargoWins is false, only sends when Kargo lost (not when Kargo won)
  */
 function sendWinAnalytics(auctionId, adUnitCode) {
   const auctionCache = cache.auctions[auctionId];
@@ -630,6 +656,14 @@ function sendWinAnalytics(auctionId, adUnitCode) {
 
   // Check sampling
   if (!_sampled) return;
+
+  const winningBid = auctionCache.winningBids[adUnitCode];
+
+  // If reportKargoWins is false, don't send win events when Kargo won
+  // This addresses publisher concerns about bid shading optimization
+  if (!_config.reportKargoWins && winningBid?.bidder === KARGO_BIDDER_CODE) {
+    return; // Skip - don't report when Kargo wins
+  }
 
   const payload = formatWinPayload(auctionId, adUnitCode, auctionCache);
   if (!payload) return;
