@@ -1,10 +1,11 @@
-import { _each, isEmpty, buildUrl, deepAccess, pick, logError, isPlainObject, generateUUID, deepClone } from '../src/utils.js';
+import { _each, isEmpty, buildUrl, deepAccess, pick, logError, logInfo, logWarn, isPlainObject, generateUUID, deepClone } from '../src/utils.js';
 import { config } from '../src/config.js';
 import { registerBidder } from '../src/adapters/bidderFactory.js';
 import { getStorageManager } from '../src/storageManager.js';
 import { BANNER, VIDEO } from '../src/mediaTypes.js';
 
 const PREBID_VERSION = '$prebid.version$'
+const DEFAULT_GZIP_ENABLED = true;
 
 const BIDDER = Object.freeze({
   CODE: 'kargo',
@@ -65,6 +66,25 @@ function isBidRequestValid(bid) {
   }
 
   return !!bid.params.placementId;
+}
+
+function getGzipSetting() {
+  // Check bidder-specific configuration
+  try {
+    const gzipSetting = deepAccess(config.getBidderConfig(), 'kargo.gzipEnabled');
+    if (gzipSetting !== undefined) {
+      const gzipValue = String(gzipSetting).toLowerCase().trim();
+      if (gzipValue === 'true' || gzipValue === 'false') {
+        const parsedValue = gzipValue === 'true';
+        logInfo('Kargo: Using bidder-specific gzipEnabled setting:', parsedValue);
+        return parsedValue;
+      }
+      logWarn('Kargo: Invalid gzipEnabled value in bidder config:', gzipSetting);
+    }
+  } catch (e) { logWarn('Kargo: Error accessing bidder config:', e); }
+
+  logInfo('Kargo: Using default gzipEnabled setting:', DEFAULT_GZIP_ENABLED);
+  return DEFAULT_GZIP_ENABLED;
 }
 
 function buildRequests(validBidRequests, bidderRequest) {
@@ -193,7 +213,10 @@ function buildRequests(validBidRequests, bidderRequest) {
     method: BIDDER.REQUEST_METHOD,
     url: `https://${BIDDER.HOST}${BIDDER.REQUEST_ENDPOINT}`,
     data: krakenParams,
-    currency: currency
+    currency: currency,
+    options: {
+      endpointCompression: getGzipSetting(),
+    }
   });
 }
 
