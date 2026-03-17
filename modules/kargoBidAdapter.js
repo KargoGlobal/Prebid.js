@@ -268,7 +268,7 @@ function getUserSyncs(syncOptions, _, gdprConsent, usPrivacy, gppConsent) {
   var gdpr = (gdprConsent && gdprConsent.gdprApplies) ? 1 : 0;
   var gdprConsentString = (gdprConsent && gdprConsent.consentString) ? gdprConsent.consentString : '';
 
-  var gppString = (gppConsent && gppConsent.consentString) ? gppConsent.consentString : '';
+  var gppString = (gppConsent && gppConsent.gppString) ? gppConsent.gppString : '';
   var gppApplicableSections = (gppConsent && gppConsent.applicableSections && Array.isArray(gppConsent.applicableSections)) ? gppConsent.applicableSections.join(',') : '';
 
   // don't sync if opted out via usPrivacy
@@ -410,11 +410,11 @@ function getUserIds(tdidAdapter, usp, gdpr, eids, gpp) {
     userIds.sharedIDEids = eids;
   }
 
-  // GPP
+  // GPP (Prebid provides gppConsent.gppString, not consentString)
   if (gpp) {
     const parsedGPP = {};
-    if (gpp.consentString) {
-      parsedGPP.gppString = gpp.consentString;
+    if (gpp.gppString) {
+      parsedGPP.gppString = gpp.gppString;
     }
     if (gpp.applicableSections) {
       parsedGPP.applicableSections = gpp.applicableSections;
