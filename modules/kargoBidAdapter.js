@@ -410,7 +410,7 @@ function getUserIds(tdidAdapter, usp, gdpr, eids, gpp) {
     userIds.sharedIDEids = eids;
   }
 
-  // GPP (Prebid provides gppConsent.gppString, not consentString)
+  // GPP
   if (gpp) {
     const parsedGPP = {};
     if (gpp.gppString) {
