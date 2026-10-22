@@ -1,7 +1,7 @@
 import { deepSetValue, logError, logInfo, logMessage, logWarn } from '../src/utils.js';
 import { getGlobal } from '../src/prebidGlobal.js';
 import { EVENTS, REJECTION_REASON } from '../src/constants.js';
-import { ajax } from '../src/ajax.js';
+import { noCredsAjax as ajax } from '../src/ajax.js';
 import { config } from '../src/config.js';
 import { getHook } from '../src/hook.js';
 import { defer } from '../src/utils/promise.js';
@@ -200,7 +200,7 @@ declare module '../src/prebidGlobal' {
  * Convert `amount` in currency `fromCurrency` to `toCurrency`.
  */
 function convertCurrency(cpm, fromCurrency, toCurrency) {
-  return parseFloat(cpm) * getCurrencyConversion(fromCurrency, toCurrency)
+  return parseFloat(cpm) * getCurrencyConversion(fromCurrency, toCurrency);
 }
 
 function initCurrency() {
@@ -236,6 +236,7 @@ export function resetCurrency() {
     needToCallForCurrencyFile = true;
     shouldUseDefaults = true;
     currencyRates = {};
+    defaultRates = undefined;
     bidderCurrencyDefault = {};
     responseReady = defer();
   }
@@ -253,6 +254,10 @@ declare module '../src/bidfactory' {
      */
     getCpmInNewCurrency(toCurrency: Currency): string
   }
+}
+
+function roundCpm(value) {
+  return Number(parseFloat(value).toFixed(4));
 }
 
 export const addBidResponseHook = timedBidResponseHook('currency', function addBidResponseHook(fn, adUnitCode, bid, reject) {
@@ -294,10 +299,20 @@ export const addBidResponseHook = timedBidResponseHook('currency', function addB
 function rejectOnAuctionTimeout({ auctionId }) {
   bidResponseQueue = bidResponseQueue.filter(([fn, ctx, adUnitCode, bid, reject]) => {
     if (bid.auctionId === auctionId) {
-      reject(REJECTION_REASON.CANNOT_CONVERT_CURRENCY)
+      reject(REJECTION_REASON.CANNOT_CONVERT_CURRENCY);
       return false;
     } else {
       return true;
+    }
+  });
+}
+
+// meta.deal amounts are in the bid's currency, so they are scaled along with bid.cpm
+function convertDealMeta(deal, conversion) {
+  if (deal == null) return;
+  ['cpm', 'pacingAdjustedCpm'].forEach(key => {
+    if (typeof deal[key] === 'number') {
+      deal[key] = roundCpm(deal[key] * conversion);
     }
   });
 }
@@ -310,8 +325,9 @@ function processBidResponseQueue() {
       try {
         const conversion = getCurrencyConversion(fromCurrency);
         if (conversion !== 1) {
-          bid.cpm = (parseFloat(bid.cpm) * conversion).toFixed(4);
+          bid.cpm = roundCpm(parseFloat(bid.cpm) * conversion);
           bid.currency = adServerCurrency;
+          convertDealMeta(bid.meta?.deal, conversion);
         }
       } catch (e) {
         logWarn('getCurrencyConversion threw error: ', e);
@@ -325,7 +341,7 @@ function processBidResponseQueue() {
 }
 
 function getCurrencyConversion(fromCurrency, toCurrency = adServerCurrency) {
-  var conversionRate = null;
+  var conversionRate;
   var rates;
   const cacheKey = `${fromCurrency}->${toCurrency}`;
   if (cacheKey in conversionCache) {
@@ -405,7 +421,7 @@ function enrichFPDHook(next, fpd) {
   return next(fpd.then(ortb2 => {
     deepSetValue(ortb2, 'ext.prebid.adServerCurrency', adServerCurrency);
     return ortb2;
-  }))
+  }));
 }
 
 export const requestBidsHook = timedAuctionHook('currency', function requestBidsHook(fn, reqBidsConfigObj) {
@@ -413,7 +429,7 @@ export const requestBidsHook = timedAuctionHook('currency', function requestBids
 
   if (!currencyRatesLoaded && auctionDelay > 0) {
     delayedAuctions.submit(auctionDelay, continueAuction, () => {
-      logWarn(`${MODULE_NAME}: Fetch attempt did not return in time for auction ${reqBidsConfigObj.auctionId}`)
+      logWarn(`${MODULE_NAME}: Fetch attempt did not return in time for auction ${reqBidsConfigObj.auctionId}`);
       continueAuction();
     });
   } else {

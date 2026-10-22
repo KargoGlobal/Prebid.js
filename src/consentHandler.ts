@@ -2,6 +2,9 @@ import { cyrb53Hash, deepEqual, isEmpty, isStr, timestamp } from './utils.js';
 import { defer, PbPromise } from './utils/promise.js';
 import { config } from './config.js';
 import type { ModuleType } from "./activities/modules.ts";
+import type { TCFConsentData } from "./types/consent/tcf.d.ts";
+import type { GPPConsentData } from "./types/consent/gpp.d.ts";
+import type { USPConsentData } from "./types/consent/usp.d.ts";
 
 /**
  * Placeholder gvlid for when vendor consent is not required. When this value is used as gvlid, the gdpr
@@ -9,23 +12,28 @@ import type { ModuleType } from "./activities/modules.ts";
  *
  * see https://github.com/prebid/Prebid.js/issues/8161
  */
-export const VENDORLESS_GVLID = Object.freeze({});
+export const VENDORLESS_GVLID: unique symbol = Symbol("VENDORLESS_GVLID");
 export const CONSENT_GDPR = 'gdpr';
 export const CONSENT_GPP = 'gpp';
 export const CONSENT_USP = 'usp';
 export const CONSENT_COPPA = 'coppa';
 export type ConsentType = typeof CONSENT_GDPR | typeof CONSENT_GPP | typeof CONSENT_USP | typeof CONSENT_COPPA;
 
+/**
+ * Consent data by framework. Every member type is declared in core, so it is known whether or not
+ * the module that populates it is part of the build; the data itself is only ever collected by that
+ * module.
+ */
 export interface ConsentData {
-  // with just core, only coppa is defined - everything else will be null.
-  // importing consent modules also imports the type definitions.
+  [CONSENT_GDPR]: TCFConsentData;
+  [CONSENT_GPP]: GPPConsentData;
+  [CONSENT_USP]: USPConsentData;
   [CONSENT_COPPA]: boolean;
 }
 
-/** Resolves to ConsentData[K] when module has augmented that key, else unknown (core-only build). */
-export type ConsentDataForKey<K extends ConsentType> = K extends keyof ConsentData ? ConsentData[K] : unknown;
+export type ConsentDataForKey<K extends ConsentType> = ConsentData[K];
 
-type ConsentDataFor<T extends ConsentType> = T extends keyof ConsentData ? ConsentData[T] : null;
+type ConsentDataFor<T extends ConsentType> = ConsentData[T];
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ConsentManagementConfig {
@@ -106,11 +114,11 @@ export function consentHandler<T, M>(
   }
 
   function getHashData(consentData) {
-    return consentData && hashFields ? hashFields.map((f) => consentData[f]) : consentData
+    return consentData && hashFields ? hashFields.map((f) => consentData[f]) : consentData;
   }
 
   function hasConsentChanged(newConsentData) {
-    return !deepEqual(getHashData(consentData), getHashData(newConsentData))
+    return !deepEqual(getHashData(consentData), getHashData(newConsentData));
   }
 
   function notifyListeners() {
@@ -179,7 +187,7 @@ export function consentHandler<T, M>(
       if (dirty) {
         hash = cyrb53Hash(
           JSON.stringify(getHashData(consentData))
-        )
+        );
         dirty = false;
       }
       return hash;
@@ -187,7 +195,7 @@ export function consentHandler<T, M>(
     onChange(listener) {
       listeners.push(listener);
     }
-  }
+  };
 }
 
 export const uspDataHandler = consentHandler<ConsentDataFor<typeof CONSENT_USP>, DefaultConsentMeta>();
@@ -202,10 +210,11 @@ export const gdprDataHandler = consentHandler({
           : 0,
         generatedAt,
         apiVersion: consentData.apiVersion,
-      }
+      };
     }
   },
-  hashFields: ['gdprApplies', 'consentString']
+  // addtlConsent can change while the TC string stays the same, and affects enforcement for Additional Consent providers
+  hashFields: ['gdprApplies', 'consentString', 'addtlConsent']
 });
 
 export const gppDataHandler = consentHandler<ConsentDataFor<typeof CONSENT_GPP>, DefaultConsentMeta>({
@@ -233,20 +242,20 @@ export const coppaDataHandler = (() => {
 })();
 
 export type GVLID = number | typeof VENDORLESS_GVLID;
-type GVLIDResult = {
+type GVLIDResult<T = GVLID> = {
   /**
    * A map from module type to that module's GVL ID.
    */
   modules: {
-    [moduleType: string]: GVLID;
+    [moduleType: string]: T;
   };
   /**
    * The single GVL ID for this family of modules (only defined if all modules with this name declared the same ID).
    */
-  gvlid?: GVLID;
-}
+  gvlid?: T;
+};
 
-export function gvlidRegistry() {
+export function gvlidRegistry<T = GVLID>() {
   const registry = {};
   const flat = {};
   const none = {};
@@ -257,7 +266,7 @@ export function gvlidRegistry() {
      * @param moduleName
      * @param gvlid
      */
-    register(moduleType: ModuleType, moduleName: string, gvlid: GVLID) {
+    register(moduleType: ModuleType, moduleName: string, gvlid: T) {
       if (gvlid) {
         (registry[moduleName] = registry[moduleName] || {})[moduleType] = gvlid;
         if (flat.hasOwnProperty(moduleName)) {
@@ -277,13 +286,13 @@ export function gvlidRegistry() {
      *   `gvlid` is the single GVL ID for this family of modules (only defined if all modules with this name declare the same ID).
      */
     get(moduleName: string) {
-      const result: GVLIDResult = { modules: registry[moduleName] || {} };
+      const result: GVLIDResult<T> = { modules: registry[moduleName] || {} };
       if (flat.hasOwnProperty(moduleName) && flat[moduleName] !== none) {
         result.gvlid = flat[moduleName];
       }
       return result;
     }
-  }
+  };
 }
 
 declare module './config' {
@@ -297,6 +306,13 @@ declare module './config' {
 
 export const GDPR_GVLIDS = gvlidRegistry();
 
+/**
+ * Registry of Google Additional Consent provider IDs.
+ * These are a separate ID space from GVL IDs (the same number may identify different vendors in each list).
+ * @see https://support.google.com/admanager/answer/9681920
+ */
+export const GDPR_ACPIDS = gvlidRegistry<number>();
+
 const ALL_HANDLERS = {
   [CONSENT_GDPR]: gdprDataHandler,
   [CONSENT_USP]: uspDataHandler,
@@ -306,11 +322,11 @@ const ALL_HANDLERS = {
 
 export type AllConsentData = {
   [K in keyof typeof ALL_HANDLERS]: ReturnType<(typeof ALL_HANDLERS)[K]['getConsentData']>
-}
+};
 
 export type AllConsentMeta = {
   [K in keyof typeof ALL_HANDLERS]: ReturnType<(typeof ALL_HANDLERS)[K]['getConsentMeta']>
-}
+};
 
 type MultiHandler = Pick<ConsentHandler<AllConsentData, AllConsentMeta>, 'promise' | 'hash' | 'getConsentData' | 'reset' | 'getConsentMeta' | 'onChange'>;
 
@@ -318,8 +334,8 @@ export function multiHandler(handlers = ALL_HANDLERS): MultiHandler {
   const entries = Object.entries(handlers);
   function collector(method): any {
     return function () {
-      return Object.fromEntries(entries.map(([name, handler]) => [name, handler[method]()]))
-    }
+      return Object.fromEntries(entries.map(([name, handler]) => [name, handler[method]()]));
+    };
   }
   const getConsentData = collector('getConsentData');
   const resetAll = collector('reset');
@@ -328,7 +344,7 @@ export function multiHandler(handlers = ALL_HANDLERS): MultiHandler {
     listeners = [];
     Object.values(handlers).forEach(handler => handler.onChange(() => {
       listeners.forEach((listener) => listener(getConsentData()));
-    }))
+    }));
   }
   reset();
 
@@ -353,3 +369,4 @@ export function multiHandler(handlers = ALL_HANDLERS): MultiHandler {
 }
 
 export const allConsent = multiHandler();
+export const GVL_PURPOSES = {}; // this is populated by plugins/gvlPurposes.js

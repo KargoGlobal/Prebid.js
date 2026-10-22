@@ -11,6 +11,8 @@ export interface SafeRendererConfig {
   url: string;
   config?: any; // set by the bidder adapter
   getConfig?(bidResponse: Bid): any; // set by the publisher
+  /** Cache XML-only outstream bids so this renderer receives a VAST URL. */
+  requiresVastUrl?: boolean;
 }
 
 export interface RendererConfig {
@@ -28,6 +30,9 @@ export interface RendererConfig {
    * if set to true, this renderer config will be used only when the bid adapter doesn't provide its own renderer.
    */
   backupOnly?: boolean;
+
+  /** Cache XML-only outstream bids so this renderer receives a VAST URL. */
+  requiresVastUrl?: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -158,14 +163,14 @@ const AUCTIONS = 'auctions';
 
 let adUnits = {};
 export function reset() {
-  adUnits = {}
+  adUnits = {};
 }
 
 function ensureAdUnit(adunit, bidderCode?) {
   const adUnit = adUnits[adunit] = adUnits[adunit] || { bidders: {} };
   if (bidderCode) {
-    adUnit.bidders[bidderCode] = adUnit.bidders[bidderCode] || {}
-    return adUnit.bidders[bidderCode]
+    adUnit.bidders[bidderCode] = adUnit.bidders[bidderCode] || {};
+    return adUnit.bidders[bidderCode];
   }
   return adUnit;
 }
@@ -179,13 +184,13 @@ function incrementer<BY_BIDDER extends boolean>(counter, byBidder: BY_BIDDER): C
     const counters = ensureAdUnit(adUnit, byBidder && bidder);
     counters[counter] = (counters[counter] ?? 0) + 1;
     return counters[counter];
-  }
+  };
 }
 
 function getter<BY_BIDDER extends boolean>(counter, byBidder: BY_BIDDER): Counter<BY_BIDDER> {
   return function (adUnit, bidder?) {
     return ensureAdUnit(adUnit, byBidder && bidder)[counter] ?? 0;
-  }
+  };
 }
 
 /**
@@ -216,7 +221,7 @@ export const getRequestsCounter = getter(REQUESTS, false);
 /**
  * Returns current Adunit requests counter for a specific bidder code
  */
-export const getBidderRequestsCounter = getter(REQUESTS, true)
+export const getBidderRequestsCounter = getter(REQUESTS, true);
 
 /**
  * Returns current Adunit requests counter for a specific bidder code
